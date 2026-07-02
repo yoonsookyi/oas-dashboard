@@ -1,38 +1,33 @@
-from __future__ import annotations
-
 import os
 import platform
 import shutil
 import subprocess
 import time
-from dataclasses import dataclass
 from pathlib import Path
 
-from .config import AppConfig
+
+class Check(object):
+    def __init__(self, name, value, status, detail=""):
+        self.name = name
+        self.value = value
+        self.status = status
+        self.detail = detail
 
 
-@dataclass
-class Check:
-    name: str
-    value: str
-    status: str
-    detail: str = ""
+class Snapshot(object):
+    def __init__(self, hostname, os_name, arch, checked_at, checks):
+        self.hostname = hostname
+        self.os_name = os_name
+        self.arch = arch
+        self.checked_at = checked_at
+        self.checks = checks
 
 
-@dataclass
-class Snapshot:
-    hostname: str
-    os_name: str
-    arch: str
-    checked_at: float
-    checks: list[Check]
-
-
-class ResourceCollector:
-    def __init__(self, cfg: AppConfig):
+class ResourceCollector(object):
+    def __init__(self, cfg):
         self.cfg = cfg
 
-    def snapshot(self) -> Snapshot:
+    def snapshot(self):
         checks = [
             self._path_check("App Root", self.cfg.paths.root, "앱 배포 루트"),
             self._path_check("Data Dir", self.cfg.paths.data_dir, "작업 이력 및 수집 결과"),
@@ -46,17 +41,17 @@ class ResourceCollector:
             checks.append(Check("Runtime OS", platform.system(), "WARN", "운영 대상은 Linux입니다. 현재 환경에서는 일부 점검이 제한됩니다."))
         return Snapshot(platform.node(), platform.system(), platform.machine(), time.time(), checks)
 
-    def _path_check(self, name: str, path: str, detail: str) -> Check:
+    def _path_check(self, name, path, detail):
         if not path:
             return Check(name, "", "WARN", detail)
         p = Path(path)
         if not p.exists():
-            return Check(name, path, "WARN", f"{detail}; 경로 없음")
+            return Check(name, path, "WARN", "{0}; 경로 없음".format(detail))
         if not os.access(path, os.R_OK):
-            return Check(name, path, "WARN", f"{detail}; 읽기 권한 없음")
+            return Check(name, path, "WARN", "{0}; 읽기 권한 없음".format(detail))
         return Check(name, path, "OK", detail)
 
-    def _linux_checks(self) -> list[Check]:
+    def _linux_checks(self):
         checks = [
             command_check("Load Average", ["uptime"]),
             command_check("Memory", ["free", "-m"]),
@@ -71,9 +66,9 @@ class ResourceCollector:
         return checks
 
 
-def command_check(name: str, command: list[str], timeout: int = 5) -> Check:
+def command_check(name, command, timeout=5):
     try:
-        proc = subprocess.run(command, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=timeout, check=False)
+        proc = subprocess.run(command, universal_newlines=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=timeout, check=False)
         value = proc.stdout.strip()
         if len(value) > 1200:
             value = value[:1200] + "..."

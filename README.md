@@ -26,7 +26,7 @@ OAS Admin Lite는 Oracle Analytics Server 2026 운영자를 위한 경량 온디
 
 ```text
 Linux
-python3
+python3 3.6 이상
 bash
 tar / gzip
 oracle 계정
@@ -44,7 +44,7 @@ sudoers
 nginx/apache 추가 설치
 ```
 
-Python 표준 라이브러리만 사용합니다.
+Python 3.6 이상 표준 라이브러리만 사용합니다.
 
 ## 권장 배포 위치
 
@@ -297,25 +297,25 @@ patch:
 로컬 테스트 설정:
 
 ```bash
-python app/oas_admin_lite.py --config configs/app.local.yaml --check
+python3 app/oas_admin_lite.py --config configs/app.local.yaml --check
 ```
 
 단위 테스트:
 
 ```bash
-python -m unittest discover -s tests
+python3 -m unittest discover -s tests
 ```
 
 문법 체크:
 
 ```bash
-python -m compileall app tests
+python3 -m compileall app tests
 ```
 
 로컬 실행:
 
 ```bash
-python app/oas_admin_lite.py --config configs/app.local.yaml
+python3 app/oas_admin_lite.py --config configs/app.local.yaml
 ```
 
 브라우저:

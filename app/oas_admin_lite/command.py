@@ -1,25 +1,22 @@
-from __future__ import annotations
-
 import os
 import subprocess
 import time
-from dataclasses import dataclass
 from pathlib import Path
 
 
-@dataclass
-class CommandResult:
-    command: list[str]
-    cwd: str
-    status: str
-    exit_code: int
-    output: str
-    started_at: float
-    ended_at: float
-    log_path: str
+class CommandResult(object):
+    def __init__(self, command, cwd, status, exit_code, output, started_at, ended_at, log_path):
+        self.command = command
+        self.cwd = cwd
+        self.status = status
+        self.exit_code = exit_code
+        self.output = output
+        self.started_at = started_at
+        self.ended_at = ended_at
+        self.log_path = log_path
 
 
-def run_command(command: list[str], cwd: str = "", timeout: int = 300, log_dir: str = "") -> CommandResult:
+def run_command(command, cwd="", timeout=300, log_dir=""):
     started = time.time()
     output = ""
     exit_code = 0
@@ -28,7 +25,7 @@ def run_command(command: list[str], cwd: str = "", timeout: int = 300, log_dir: 
         proc = subprocess.run(
             command,
             cwd=cwd or None,
-            text=True,
+            universal_newlines=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             timeout=timeout,
@@ -47,12 +44,12 @@ def run_command(command: list[str], cwd: str = "", timeout: int = 300, log_dir: 
     if log_dir:
         Path(log_dir).mkdir(parents=True, exist_ok=True)
         safe_name = Path(command[0]).name.replace(".", "_")
-        log_path = os.path.join(log_dir, f"{time.strftime('%Y%m%d-%H%M%S', time.localtime(started))}-{safe_name}.log")
+        log_path = os.path.join(log_dir, "{0}-{1}.log".format(time.strftime("%Y%m%d-%H%M%S", time.localtime(started)), safe_name))
         Path(log_path).write_text(output, encoding="utf-8", errors="replace")
     return CommandResult(command, cwd, status, exit_code, output, started, ended, log_path)
 
 
-def truncate(value: str, limit: int = 1200) -> str:
+def truncate(value, limit=1200):
     if len(value) <= limit:
         return value
     return value[:limit] + "..."

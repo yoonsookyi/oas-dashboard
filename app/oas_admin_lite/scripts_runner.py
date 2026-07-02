@@ -1,62 +1,62 @@
-from __future__ import annotations
-
 import os
 import shlex
 import time
-from dataclasses import dataclass
-from pathlib import Path
 
 from .command import run_command, truncate
-from .config import AppConfig
-from .storage import Job, JobStore
+from .storage import Job
 
 
-@dataclass
-class ScriptState:
-    bitools_bin: str
-    allowed: list[str]
-    last_command: str = ""
-    last_output: str = ""
+class ScriptState(object):
+    def __init__(self, bitools_bin, allowed, last_command="", last_output=""):
+        self.bitools_bin = bitools_bin
+        self.allowed = allowed
+        self.last_command = last_command
+        self.last_output = last_output
 
-    def to_dict(self) -> dict:
-        return self.__dict__.copy()
+    def to_dict(self):
+        return {
+            "bitools_bin": self.bitools_bin,
+            "allowed": self.allowed,
+            "last_command": self.last_command,
+            "last_output": self.last_output,
+        }
 
 
-class ScriptService:
-    def __init__(self, cfg: AppConfig, store: JobStore):
+class ScriptService(object):
+    def __init__(self, cfg, store):
         self.cfg = cfg
         self.store = store
         self.state = ScriptState(cfg.oas.bitools_bin, cfg.scripts.allowed)
 
-    def state_dict(self) -> dict:
+    def state_dict(self):
         saved = self.store.get_json("script_state", {})
         data = self.state.to_dict()
         data.update(saved)
         return data
 
-    def preview(self, script: str, raw_args: str) -> None:
+    def preview(self, script, raw_args):
         command = self._command(script, raw_args)
         output = "Preview only. Oracle 문서 기준 service instance/BAR 스크립트는 offline 실행 조건을 확인해야 합니다."
         self._record("script_preview", command, "SUCCESS", 0, output, time.time(), time.time(), "")
 
-    def run(self, script: str, raw_args: str) -> None:
+    def run(self, script, raw_args):
         command = self._command(script, raw_args)
         result = run_command(command, cwd=self.cfg.oas.bitools_bin, timeout=3600, log_dir=os.path.join(self.cfg.paths.log_dir, "jobs"))
         self._record("script_run", result.command, result.status, result.exit_code, result.output, result.started_at, result.ended_at, result.log_path)
         if result.status != "SUCCESS":
             raise RuntimeError(result.output or "script execution failed")
 
-    def _command(self, script: str, raw_args: str) -> list[str]:
+    def _command(self, script, raw_args):
         script = (script or "").strip()
         if script not in self.cfg.scripts.allowed:
-            raise ValueError(f"script is not allowed: {script}")
+            raise ValueError("script is not allowed: {0}".format(script))
         if any(sep in script for sep in ("/", "\\")):
             raise ValueError("script name must not contain path separators")
         path = os.path.join(self.cfg.oas.bitools_bin, script)
         args = shlex.split(raw_args or "")
-        return [path, *args]
+        return [path] + args
 
-    def _record(self, job_type: str, command: list[str], status: str, exit_code: int, output: str, started: float, ended: float, log_path: str) -> None:
+    def _record(self, job_type, command, status, exit_code, output, started, ended, log_path):
         command_text = " ".join(shlex.quote(item) for item in command)
         state = self.state.to_dict()
         state["last_command"] = command_text

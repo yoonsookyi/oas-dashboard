@@ -1,41 +1,46 @@
-from __future__ import annotations
-
 import json
 import os
 import sqlite3
 import time
-from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any
 
 
-@dataclass
-class Job:
-    type: str
-    command: str
-    status: str
-    message: str = ""
-    exit_code: int = 0
-    started_at: float = 0.0
-    ended_at: float = 0.0
-    log_path: str = ""
+class Job(object):
+    def __init__(self, type, command, status, message="", exit_code=0, started_at=0.0, ended_at=0.0, log_path=""):
+        self.type = type
+        self.command = command
+        self.status = status
+        self.message = message
+        self.exit_code = exit_code
+        self.started_at = started_at
+        self.ended_at = ended_at
+        self.log_path = log_path
 
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+    def to_dict(self):
+        return {
+            "type": self.type,
+            "command": self.command,
+            "status": self.status,
+            "message": self.message,
+            "exit_code": self.exit_code,
+            "started_at": self.started_at,
+            "ended_at": self.ended_at,
+            "log_path": self.log_path,
+        }
 
 
-class JobStore:
-    def __init__(self, db_path: str):
+class JobStore(object):
+    def __init__(self, db_path):
         self.db_path = db_path
         Path(os.path.dirname(db_path)).mkdir(parents=True, exist_ok=True)
         self._init_db()
 
-    def _connect(self) -> sqlite3.Connection:
+    def _connect(self):
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         return conn
 
-    def _init_db(self) -> None:
+    def _init_db(self):
         with self._connect() as conn:
             conn.execute(
                 """
@@ -61,7 +66,7 @@ class JobStore:
                 """
             )
 
-    def add(self, job: Job) -> int:
+    def add(self, job):
         if not job.started_at:
             job.started_at = time.time()
         if not job.ended_at:
@@ -76,7 +81,7 @@ class JobStore:
             )
             return int(cur.lastrowid)
 
-    def list(self, limit: int = 100) -> list[dict[str, Any]]:
+    def list(self, limit=100):
         with self._connect() as conn:
             rows = conn.execute(
                 "select * from jobs order by started_at desc, id desc limit ?",
@@ -84,15 +89,19 @@ class JobStore:
             ).fetchall()
         return [dict(row) for row in rows]
 
-    def set_json(self, key: str, value: Any) -> None:
+    def set_json(self, key, value):
         payload = json.dumps(value, ensure_ascii=False, indent=2)
         with self._connect() as conn:
             conn.execute(
-                "insert into kv(key, value) values(?, ?) on conflict(key) do update set value=excluded.value",
+                "delete from kv where key = ?",
+                (key,),
+            )
+            conn.execute(
+                "insert into kv(key, value) values(?, ?)",
                 (key, payload),
             )
 
-    def get_json(self, key: str, default: Any = None) -> Any:
+    def get_json(self, key, default=None):
         with self._connect() as conn:
             row = conn.execute("select value from kv where key = ?", (key,)).fetchone()
         if not row:

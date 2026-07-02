@@ -402,7 +402,7 @@ export OAS_ADMIN_LITE_PASSWORD_SHA256="<sha256-hash>"
 
 현재 1차 MVP에서 구현된 항목:
 
-- Python 표준 라이브러리 기반 웹앱
+- Python 3.6 이상 표준 라이브러리 기반 웹앱
 - Dashboard 화면
 - Resources 화면
 - Catalog 화면 및 REST 호출 골격

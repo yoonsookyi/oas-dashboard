@@ -1,60 +1,54 @@
-from __future__ import annotations
-
 import json
 import time
 import urllib.error
 import urllib.request
-from dataclasses import dataclass
 from urllib.parse import urljoin
 
-from .config import AppConfig
-from .storage import Job, JobStore
+from .storage import Job
 
 
-@dataclass
-class CatalogSummary:
-    endpoint: str
-    last_scan: float = 0.0
-    counts: dict[str, int] | None = None
-    message: str = "아직 수집 결과가 없습니다."
+class CatalogSummary(object):
+    def __init__(self, endpoint, last_scan=0.0, counts=None, message="아직 수집 결과가 없습니다."):
+        self.endpoint = endpoint
+        self.last_scan = last_scan
+        self.counts = counts or {}
+        self.message = message
 
-    def to_dict(self) -> dict:
+    def to_dict(self):
         return {
             "endpoint": self.endpoint,
             "last_scan": self.last_scan,
-            "counts": self.counts or {},
+            "counts": self.counts,
             "message": self.message,
         }
 
 
-class CatalogService:
-    def __init__(self, cfg: AppConfig, store: JobStore):
+class CatalogService(object):
+    def __init__(self, cfg, store):
         self.cfg = cfg
         self.store = store
 
-    def last_summary(self) -> dict:
+    def last_summary(self):
         return self.store.get_json("catalog_summary", CatalogSummary(self.cfg.oas.analytics_url).to_dict())
 
-    def scan(self) -> dict:
-        # This first implementation verifies REST reachability and stores raw shape hints.
-        # The exact OAS REST endpoint can be adjusted in app.yaml after the customer confirms the exposed API path.
+    def scan(self):
         endpoint = self._catalog_endpoint()
         started = time.time()
         status = "SUCCESS"
         message = ""
-        counts: dict[str, int] = {}
+        counts = {}
         try:
             req = urllib.request.Request(endpoint, headers={"Accept": "application/json"})
             with urllib.request.urlopen(req, timeout=30) as resp:
-                body = resp.read(2_000_000)
-                message = f"HTTP {resp.status} {resp.reason}"
+                body = resp.read(2000000)
+                message = "HTTP {0} {1}".format(resp.status, resp.reason)
                 content_type = resp.headers.get("Content-Type", "")
                 if "json" in content_type.lower():
                     parsed = json.loads(body.decode("utf-8", errors="replace"))
                     counts = infer_counts(parsed)
         except urllib.error.HTTPError as exc:
             status = "FAILED"
-            message = f"HTTP {exc.code}: {exc.reason}"
+            message = "HTTP {0}: {1}".format(exc.code, exc.reason)
         except Exception as exc:
             status = "FAILED"
             message = str(exc)
@@ -62,7 +56,7 @@ class CatalogService:
         self.store.set_json("catalog_summary", summary)
         self.store.add(Job(
             type="catalog_scan",
-            command=f"GET {endpoint}",
+            command="GET {0}".format(endpoint),
             status=status,
             exit_code=0 if status == "SUCCESS" else 1,
             started_at=started,
@@ -73,18 +67,18 @@ class CatalogService:
             raise RuntimeError(message)
         return summary
 
-    def _catalog_endpoint(self) -> str:
+    def _catalog_endpoint(self):
         base = self.cfg.oas.analytics_url.rstrip("/") + "/"
         return urljoin(base, "")
 
 
-def infer_counts(value) -> dict[str, int]:
-    counts: dict[str, int] = {}
+def infer_counts(value):
+    counts = {}
     visit(value, counts)
     return counts
 
 
-def visit(value, counts: dict[str, int]) -> None:
+def visit(value, counts):
     if isinstance(value, dict):
         type_value = value.get("type") or value.get("objectType") or value.get("itemType")
         if isinstance(type_value, str):

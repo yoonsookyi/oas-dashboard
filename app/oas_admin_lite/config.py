@@ -1,69 +1,65 @@
-from __future__ import annotations
-
 import os
-from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
 
 
-@dataclass
-class ServerConfig:
-    listen: str = "127.0.0.1:18080"
+class ServerConfig(object):
+    def __init__(self):
+        self.listen = "127.0.0.1:18080"
 
 
-@dataclass
-class PathsConfig:
-    root: str = "/u01/oas-admin-lite"
-    data_dir: str = "/u01/oas-admin-lite/data"
-    log_dir: str = "/u01/oas-admin-lite/logs"
-    backup_dir: str = "/u01/oas-admin-lite/backups"
-    bundle_dir: str = "/u01/oas-admin-lite/bundles"
-    package_dir: str = "/u01/oas-admin-lite/packages"
+class PathsConfig(object):
+    def __init__(self):
+        self.root = "/u01/oas-admin-lite"
+        self.data_dir = "/u01/oas-admin-lite/data"
+        self.log_dir = "/u01/oas-admin-lite/logs"
+        self.backup_dir = "/u01/oas-admin-lite/backups"
+        self.bundle_dir = "/u01/oas-admin-lite/bundles"
+        self.package_dir = "/u01/oas-admin-lite/packages"
 
 
-@dataclass
-class OASConfig:
-    oracle_home: str = "/u01/app/oracle/product/fmw"
-    domain_home: str = "/u01/app/oracle/config/domains/bi"
-    bitools_bin: str = "/u01/app/oracle/config/domains/bi/bitools/bin"
-    analytics_url: str = "https://oas.example.com/analytics"
+class OASConfig(object):
+    def __init__(self):
+        self.oracle_home = "/u01/app/oracle/product/fmw"
+        self.domain_home = "/u01/app/oracle/config/domains/bi"
+        self.bitools_bin = "/u01/app/oracle/config/domains/bi/bitools/bin"
+        self.analytics_url = "https://oas.example.com/analytics"
 
 
-@dataclass
-class PatchConfig:
-    allowed_patch_dirs: list[str] = field(default_factory=lambda: [
-        "/u01/oas-admin-lite/packages/patches",
-        "/u01/stage/patches",
-    ])
+class PatchConfig(object):
+    def __init__(self):
+        self.allowed_patch_dirs = [
+            "/u01/oas-admin-lite/packages/patches",
+            "/u01/stage/patches",
+        ]
 
 
-@dataclass
-class ScriptsConfig:
-    allowed: list[str] = field(default_factory=lambda: [
-        "datamodel.sh",
-        "diagnostic_dump.sh",
-        "exportarchive.sh",
-        "importarchive.sh",
-    ])
+class ScriptsConfig(object):
+    def __init__(self):
+        self.allowed = [
+            "datamodel.sh",
+            "diagnostic_dump.sh",
+            "exportarchive.sh",
+            "importarchive.sh",
+        ]
 
 
-@dataclass
-class SecurityConfig:
-    username: str = "admin"
-    password_sha256: str = ""
+class SecurityConfig(object):
+    def __init__(self):
+        self.username = "admin"
+        self.password_sha256 = ""
 
 
-@dataclass
-class AppConfig:
-    server: ServerConfig = field(default_factory=ServerConfig)
-    paths: PathsConfig = field(default_factory=PathsConfig)
-    oas: OASConfig = field(default_factory=OASConfig)
-    patch: PatchConfig = field(default_factory=PatchConfig)
-    scripts: ScriptsConfig = field(default_factory=ScriptsConfig)
-    security: SecurityConfig = field(default_factory=SecurityConfig)
+class AppConfig(object):
+    def __init__(self):
+        self.server = ServerConfig()
+        self.paths = PathsConfig()
+        self.oas = OASConfig()
+        self.patch = PatchConfig()
+        self.scripts = ScriptsConfig()
+        self.security = SecurityConfig()
 
-    def ensure_dirs(self) -> None:
-        for item in [
+    def ensure_dirs(self):
+        dirs = [
             self.paths.data_dir,
             self.paths.log_dir,
             os.path.join(self.paths.log_dir, "jobs"),
@@ -73,11 +69,12 @@ class AppConfig:
             os.path.join(self.paths.package_dir, "patches"),
             os.path.join(self.paths.package_dir, "releases"),
             os.path.join(self.paths.package_dir, "rollback"),
-        ]:
+        ]
+        for item in dirs:
             Path(item).mkdir(parents=True, exist_ok=True)
 
 
-def load_config(path: str | None) -> AppConfig:
+def load_config(path=None):
     cfg = AppConfig()
     if not path:
         path = os.environ.get("OAS_ADMIN_LITE_CONFIG")
@@ -90,13 +87,14 @@ def load_config(path: str | None) -> AppConfig:
     return cfg
 
 
-def parse_simple_yaml(text: str) -> dict[str, Any]:
-    lines: list[tuple[int, str]] = []
+def parse_simple_yaml(text):
+    lines = []
     for raw in text.splitlines():
-        if not raw.strip().lstrip("\ufeff") or raw.lstrip().startswith("#"):
+        stripped = raw.strip().lstrip("\ufeff")
+        if not stripped or raw.lstrip().startswith("#"):
             continue
         indent = len(raw) - len(raw.lstrip(" "))
-        lines.append((indent, raw.strip().lstrip("\ufeff")))
+        lines.append((indent, stripped))
     if not lines:
         return {}
     value, next_index = parse_block(lines, 0, lines[0][0])
@@ -107,12 +105,12 @@ def parse_simple_yaml(text: str) -> dict[str, Any]:
     return value
 
 
-def parse_block(lines: list[tuple[int, str]], index: int, indent: int) -> tuple[Any, int]:
+def parse_block(lines, index, indent):
     if index >= len(lines):
         return {}, index
     is_list = lines[index][1].startswith("- ")
     if is_list:
-        values: list[Any] = []
+        values = []
         while index < len(lines):
             current_indent, content = lines[index]
             if current_indent < indent:
@@ -123,15 +121,15 @@ def parse_block(lines: list[tuple[int, str]], index: int, indent: int) -> tuple[
             index += 1
         return values, index
 
-    values: dict[str, Any] = {}
+    values = {}
     while index < len(lines):
         current_indent, content = lines[index]
         if current_indent < indent:
             break
         if current_indent != indent:
-            raise ValueError(f"unexpected indentation: {content}")
+            raise ValueError("unexpected indentation: {0}".format(content))
         if ":" not in content:
-            raise ValueError(f"invalid config line: {content}")
+            raise ValueError("invalid config line: {0}".format(content))
         key, raw_value = content.split(":", 1)
         key = key.strip()
         raw_value = raw_value.strip()
@@ -147,7 +145,7 @@ def parse_block(lines: list[tuple[int, str]], index: int, indent: int) -> tuple[
     return values, index
 
 
-def parse_scalar(value: str) -> Any:
+def parse_scalar(value):
     if len(value) >= 2 and value[0] == value[-1] and value[0] in {'"', "'"}:
         return value[1:-1]
     lower = value.lower()
@@ -158,7 +156,7 @@ def parse_scalar(value: str) -> Any:
     return value
 
 
-def apply_mapping(cfg: AppConfig, data: dict[str, Any]) -> None:
+def apply_mapping(cfg, data):
     for section, values in data.items():
         target = getattr(cfg, section, None)
         if target is None or not isinstance(values, dict):
@@ -168,7 +166,7 @@ def apply_mapping(cfg: AppConfig, data: dict[str, Any]) -> None:
                 setattr(target, key, value)
 
 
-def normalize_config(cfg: AppConfig) -> None:
+def normalize_config(cfg):
     root = cfg.paths.root or "/u01/oas-admin-lite"
     cfg.paths.root = root
     cfg.paths.data_dir = cfg.paths.data_dir or os.path.join(root, "data")

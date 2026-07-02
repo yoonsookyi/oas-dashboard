@@ -1,13 +1,10 @@
-from __future__ import annotations
-
 import argparse
-import sys
 
 from .config import load_config
 from .web import AppContext, serve
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv=None):
     parser = argparse.ArgumentParser(description="OAS Admin Lite")
     parser.add_argument("--config", default="", help="path to app.yaml")
     parser.add_argument("--check", action="store_true", help="load config and initialize directories, then exit")
