@@ -14,6 +14,7 @@ oas:
   domain_home: "/u01/app/oracle/config/domains/bi"
   bitools_bin: "/u01/app/oracle/config/domains/bi/bitools/bin"
   analytics_url: "https://oas.example.com/analytics"
+  catalog_api_url: ""
 
 patch:
   allowed_patch_dirs:

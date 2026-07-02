@@ -23,6 +23,7 @@ class OASConfig(object):
         self.domain_home = "/u01/app/oracle/config/domains/bi"
         self.bitools_bin = "/u01/app/oracle/config/domains/bi/bitools/bin"
         self.analytics_url = "https://oas.example.com/analytics"
+        self.catalog_api_url = ""
 
 
 class PatchConfig(object):

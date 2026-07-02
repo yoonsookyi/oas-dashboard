@@ -103,6 +103,7 @@ oas:
   domain_home: "/u01/app/oracle/config/domains/bi"
   bitools_bin: "/u01/app/oracle/config/domains/bi/bitools/bin"
   analytics_url: "https://oas.example.com/analytics"
+  catalog_api_url: ""
 ```
 
 초기 점검을 실행합니다.
@@ -158,6 +159,8 @@ server:
 
 단, 이 경우 방화벽과 접근 통제는 고객 운영 정책에 맞게 별도로 관리해야 합니다.
 
+
+Catalog 화면에서 `집계 가능한 object type이 없습니다`가 표시되면, 대부분 `analytics_url`이 OAS 웹 화면이나 로그인 페이지를 가리키고 있는 상태입니다. 실제 카탈로그 목록을 반환하는 REST endpoint가 확인되면 `catalog_api_url`에 별도로 지정하세요.
 ## Git Pull 방식 업데이트
 
 Git clone 방식으로 배포한 경우 업데이트는 다음 순서로 진행합니다.

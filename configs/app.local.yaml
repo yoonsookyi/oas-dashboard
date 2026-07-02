@@ -14,6 +14,7 @@ oas:
   domain_home: ".local/mock/domain_home"
   bitools_bin: ".local/mock/bitools/bin"
   analytics_url: "http://127.0.0.1:18080/mock/catalog"
+  catalog_api_url: ""
 
 patch:
   allowed_patch_dirs:

@@ -256,14 +256,19 @@ def resources_page(ctx, query):
 def catalog_page(ctx, query):
     summary = ctx.catalog.last_summary()
     counts = summary.get("counts") or {}
-    rows = "".join("<tr><td>{0}</td><td>{1}</td></tr>".format(esc(k), v) for k, v in sorted(counts.items())) or '<tr><td colspan="2">수집된 카탈로그 집계가 없습니다.</td></tr>'
+    if counts:
+        rows = "".join("<tr><td>{0}</td><td>{1}</td></tr>".format(esc(k), v) for k, v in sorted(counts.items()))
+    elif summary.get("last_scan", 0):
+        rows = '<tr><td colspan="2">집계 가능한 object type이 없습니다. 위의 Message와 Content-Type을 확인하세요.</td></tr>'
+    else:
+        rows = '<tr><td colspan="2">아직 카탈로그 수집을 실행하지 않았습니다.</td></tr>'
     content = """
 <section class="panel">
   <div class="panel-head"><h2>카탈로그 현황</h2><form method="post" action="/catalog/scan"><button type="submit">수집 실행</button></form></div>
-  <dl class="kv compact"><dt>Endpoint</dt><dd>{endpoint}</dd><dt>Last Scan</dt><dd>{last_scan}</dd><dt>Message</dt><dd>{message}</dd></dl>
+  <dl class="kv compact"><dt>Endpoint</dt><dd>{endpoint}</dd><dt>Last Scan</dt><dd>{last_scan}</dd><dt>Status</dt><dd>{status}</dd><dt>HTTP</dt><dd>{http_status}</dd><dt>Content-Type</dt><dd>{content_type}</dd><dt>Message</dt><dd>{message}</dd></dl>
   <table><thead><tr><th>유형</th><th>개수</th></tr></thead><tbody>{rows}</tbody></table>
 </section>
-""".format(endpoint=esc(summary.get("endpoint", "")), last_scan=fmt_ts(summary.get("last_scan", 0)), message=esc(summary.get("message", "")), rows=rows)
+""".format(endpoint=esc(summary.get("endpoint", "")), last_scan=fmt_ts(summary.get("last_scan", 0)), status=esc(summary.get("status", "")), http_status=esc(summary.get("http_status", "")), content_type=esc(summary.get("content_type", "")), message=esc(summary.get("message", "")), rows=rows)
     return layout(ctx, "Catalog", "catalog", content, query)
 
 

@@ -289,6 +289,7 @@ oas:
   domain_home: "/u01/app/oracle/config/domains/bi"
   bitools_bin: "/u01/app/oracle/config/domains/bi/bitools/bin"
   analytics_url: "https://oas.example.com/analytics"
+  catalog_api_url: ""
 ```
 
 기본 listen 주소는 `127.0.0.1:18080`입니다. 외부에 직접 노출하지 않고 SSH tunnel로 접속하는 방식을 권장합니다.
