@@ -1,1 +1,1 @@
-﻿"""OAS Admin Lite package."""
+"""OAS Admin Lite package."""

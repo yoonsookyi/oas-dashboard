@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
 set -euo pipefail
 APP_HOME="${OAS_ADMIN_LITE_HOME:-/u01/oas-admin-lite}"
 BACKUP="${1:-}"

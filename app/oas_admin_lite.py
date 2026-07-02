@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """OAS Admin Lite entrypoint."""
 from oas_admin_lite.app import main
 

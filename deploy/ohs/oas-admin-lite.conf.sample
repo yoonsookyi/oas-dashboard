@@ -1,4 +1,4 @@
-﻿# OHS reverse proxy sample. Copy into the customer OHS configuration manually if needed.
+# OHS reverse proxy sample. Copy into the customer OHS configuration manually if needed.
 # The default recommendation is SSH tunnel access to 127.0.0.1:18080.
 <Location /oas-admin-lite/>
   ProxyPass http://127.0.0.1:18080/

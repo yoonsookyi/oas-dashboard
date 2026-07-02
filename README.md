@@ -1,4 +1,4 @@
-﻿# OAS Admin Lite
+# OAS Admin Lite
 
 OAS Admin Lite는 Oracle Analytics Server 2026 운영자를 위한 경량 온디맨드 Admin 웹앱입니다.
 
