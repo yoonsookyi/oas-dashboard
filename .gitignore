@@ -1,0 +1,36 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local runtime and test data
+.local/
+run/
+logs/
+data/
+backups/
+bundles/
+packages/patches/*
+packages/releases/*
+packages/rollback/*
+!packages/patches/.gitkeep
+!packages/releases/.gitkeep
+!packages/rollback/.gitkeep
+
+# Build/package output
+dist/
+*.tar.gz
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Secrets / local overrides
+*.secret
+*.env
+app/config/app.yaml

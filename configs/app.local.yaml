@@ -1,0 +1,31 @@
+﻿server:
+  listen: "127.0.0.1:18080"
+
+paths:
+  root: ".local/oas-admin-lite"
+  data_dir: ".local/oas-admin-lite/data"
+  log_dir: ".local/oas-admin-lite/logs"
+  backup_dir: ".local/oas-admin-lite/backups"
+  bundle_dir: ".local/oas-admin-lite/bundles"
+  package_dir: ".local/oas-admin-lite/packages"
+
+oas:
+  oracle_home: ".local/mock/oracle_home"
+  domain_home: ".local/mock/domain_home"
+  bitools_bin: ".local/mock/bitools/bin"
+  analytics_url: "http://127.0.0.1:18080/mock/catalog"
+
+patch:
+  allowed_patch_dirs:
+    - ".local/oas-admin-lite/packages/patches"
+
+scripts:
+  allowed:
+    - "datamodel.sh"
+    - "diagnostic_dump.sh"
+    - "exportarchive.sh"
+    - "importarchive.sh"
+
+security:
+  username: "admin"
+  password_sha256: ""

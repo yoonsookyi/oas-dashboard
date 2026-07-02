@@ -1,0 +1,32 @@
+﻿server:
+  listen: "127.0.0.1:18080"
+
+paths:
+  root: "/u01/oas-admin-lite"
+  data_dir: "/u01/oas-admin-lite/data"
+  log_dir: "/u01/oas-admin-lite/logs"
+  backup_dir: "/u01/oas-admin-lite/backups"
+  bundle_dir: "/u01/oas-admin-lite/bundles"
+  package_dir: "/u01/oas-admin-lite/packages"
+
+oas:
+  oracle_home: "/u01/app/oracle/product/fmw"
+  domain_home: "/u01/app/oracle/config/domains/bi"
+  bitools_bin: "/u01/app/oracle/config/domains/bi/bitools/bin"
+  analytics_url: "https://oas.example.com/analytics"
+
+patch:
+  allowed_patch_dirs:
+    - "/u01/oas-admin-lite/packages/patches"
+    - "/u01/stage/patches"
+
+scripts:
+  allowed:
+    - "datamodel.sh"
+    - "diagnostic_dump.sh"
+    - "exportarchive.sh"
+    - "importarchive.sh"
+
+security:
+  username: "admin"
+  password_sha256: ""
