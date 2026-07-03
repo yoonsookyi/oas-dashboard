@@ -217,14 +217,25 @@ def layout(ctx, title, active, content, query):
 </head>
 <body>
   <div class="shell">
-    <aside class="sidebar">
-      <div class="brand">OAS Admin Lite</div>
-      <nav>{nav}</nav>
-    </aside>
+    <header class="app-topbar">
+      <a class="brand" href="/resources" aria-label="OAS Admin Lite">
+        <span class="brand-mark">OAS</span>
+        <span class="brand-copy">
+          <strong>Admin Lite</strong>
+          <small>Oracle Analytics Server 운영 콘솔</small>
+        </span>
+      </a>
+      <nav class="main-nav" aria-label="주요 메뉴">{nav}</nav>
+      <div class="top-actions"><span class="status-pill">{auth}</span></div>
+    </header>
     <main class="content">
-      <header class="topbar">
-        <div><h1>{title}</h1><p class="page-description">{description}</p><p class="page-path">{root}</p></div>
-        <div class="status-pill">{auth}</div>
+      <header class="page-header">
+        <div>
+          <p class="eyebrow">OAS Admin Lite</p>
+          <h1>{title}</h1>
+          <p class="page-description">{description}</p>
+          <p class="page-path">{root}</p>
+        </div>
       </header>
       {notice}
       {content}
@@ -243,7 +254,11 @@ def nav(active):
         ("jobs", "Jobs / Audit", "/jobs"),
         ("settings", "Settings", "/settings"),
     ]
-    return "".join('<a class="{0}" href="{1}">{2}</a>'.format("active" if key == active else "", href, label) for key, label, href in items)
+    links = []
+    for key, label, href in items:
+        attrs = ' class="active" aria-current="page"' if key == active else ''
+        links.append('<a{0} href="{1}">{2}</a>'.format(attrs, href, label))
+    return "".join(links)
 
 def resources_page(ctx, query):
     snap = ctx.resources.snapshot()
