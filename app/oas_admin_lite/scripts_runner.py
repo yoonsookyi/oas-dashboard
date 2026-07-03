@@ -6,6 +6,9 @@ from .command import run_command, truncate
 from .storage import Job
 
 
+BLOCKED_SCRIPTS = {"importarchive.sh"}
+
+
 class ScriptState(object):
     def __init__(self, bitools_bin, allowed, last_command="", last_output=""):
         self.bitools_bin = bitools_bin
@@ -22,16 +25,21 @@ class ScriptState(object):
         }
 
 
+def allowed_scripts(items):
+    return [item for item in (items or []) if item not in BLOCKED_SCRIPTS]
+
+
 class ScriptService(object):
     def __init__(self, cfg, store):
         self.cfg = cfg
         self.store = store
-        self.state = ScriptState(cfg.oas.bitools_bin, cfg.scripts.allowed)
+        self.state = ScriptState(cfg.oas.bitools_bin, allowed_scripts(cfg.scripts.allowed))
 
     def state_dict(self):
         saved = self.store.get_json("script_state", {})
         data = self.state.to_dict()
         data.update(saved)
+        data["allowed"] = allowed_scripts(data.get("allowed"))
         return data
 
     def preview(self, script, raw_args):
@@ -48,7 +56,9 @@ class ScriptService(object):
 
     def _command(self, script, raw_args):
         script = (script or "").strip()
-        if script not in self.cfg.scripts.allowed:
+        if script in BLOCKED_SCRIPTS:
+            raise ValueError("script is blocked: {0}".format(script))
+        if script not in allowed_scripts(self.cfg.scripts.allowed):
             raise ValueError("script is not allowed: {0}".format(script))
         if any(sep in script for sep in ("/", "\\")):
             raise ValueError("script name must not contain path separators")

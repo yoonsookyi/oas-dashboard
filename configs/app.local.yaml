@@ -29,7 +29,6 @@ scripts:
     - "datamodel.sh"
     - "diagnostic_dump.sh"
     - "exportarchive.sh"
-    - "importarchive.sh"
 
 security:
   username: "admin"

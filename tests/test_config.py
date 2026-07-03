@@ -6,6 +6,7 @@ from pathlib import Path
 
 from app.oas_admin_lite.catalog import CatalogService, infer_counts
 from app.oas_admin_lite.config import load_config, parse_simple_yaml
+from app.oas_admin_lite.scripts_runner import ScriptService, allowed_scripts
 from app.oas_admin_lite.storage import JobStore
 
 
@@ -23,6 +24,18 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(cfg.paths.root, ".local/oas-admin-lite")
         self.assertEqual(cfg.scripts.allowed[0], "datamodel.sh")
         self.assertEqual(cfg.oas.catalog_api_path, "/mock/catalog")
+
+    def test_importarchive_is_blocked(self):
+        cfg = load_config("configs/app.local.yaml")
+        cfg.scripts.allowed = ["datamodel.sh", "importarchive.sh"]
+        self.assertEqual(allowed_scripts(cfg.scripts.allowed), ["datamodel.sh"])
+        with tempfile.TemporaryDirectory() as tmp:
+            store = JobStore(os.path.join(tmp, "test.db"))
+            store.set_json("script_state", {"allowed": ["datamodel.sh", "importarchive.sh"]})
+            service = ScriptService(cfg, store)
+            self.assertNotIn("importarchive.sh", service.state_dict()["allowed"])
+            with self.assertRaises(ValueError):
+                service.preview("importarchive.sh", "")
 
     def test_catalog_endpoint_and_basic_auth(self):
         cfg = load_config("configs/app.local.yaml")

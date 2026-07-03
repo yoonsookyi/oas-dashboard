@@ -185,12 +185,6 @@ SCRIPT_GUIDES = [
         "usage": "예: -serviceInstance ssi -bar /u01/oas-admin-lite/backups/catalog/export.bar 처럼 대상 instance와 BAR 경로를 지정합니다.",
         "result": "생성된 BAR 파일은 백업, 이관, import 전 안전 지점으로 사용합니다. 파일은 /u01/oas-admin-lite/backups 아래 보관하는 것을 권장합니다.",
     },
-    {
-        "name": "importarchive.sh",
-        "purpose": "BAR archive를 OAS service instance로 가져와 catalog 또는 관련 메타데이터를 반영할 때 사용합니다.",
-        "usage": "실행 전 exportarchive.sh로 현재 상태를 백업하고, 대상 BAR 파일과 옵션을 Preview에서 확인한 뒤 RUN을 입력합니다.",
-        "result": "성공 후 OAS 화면에서 주요 대시보드/분석을 확인하고, 실패 시 Jobs / Audit의 stdout/stderr와 BAR 파일 경로를 같이 검토합니다.",
-    },
 ]
 
 PAGE_DESCRIPTIONS = {
