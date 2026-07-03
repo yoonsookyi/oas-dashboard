@@ -340,3 +340,75 @@ select:focus {
   h1 { font-size: 21px; }
   table { min-width: 620px; }
 }
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  border-radius: 999px;
+  padding: 4px 9px;
+  background: #eef3f8;
+  border: 1px solid var(--line);
+  color: #334155;
+  font-size: 12px;
+  font-weight: 760;
+}
+.info-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.info-list > div {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-alt);
+  padding: 12px;
+}
+.info-list strong {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 13px;
+}
+.info-list p {
+  margin: 0;
+  color: #475569;
+}
+.script-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.script-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 14px;
+}
+.script-card h3 {
+  color: var(--text);
+  font-size: 15px;
+  margin-bottom: 10px;
+}
+.script-card dl {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+}
+.script-card dt {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 780;
+}
+.script-card dd {
+  margin: 0;
+  color: #334155;
+}
+
+@media (max-width: 980px) {
+  .info-list,
+  .script-grid { grid-template-columns: 1fr; }
+}

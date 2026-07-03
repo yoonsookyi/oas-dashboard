@@ -166,6 +166,33 @@ def first(form, key):
     return values[0]
 
 
+SCRIPT_GUIDES = [
+    {
+        "name": "datamodel.sh",
+        "purpose": "BAR 파일 또는 서비스 인스턴스에서 semantic model, connection, data model 관련 정보를 추출하거나 관리할 때 사용합니다.",
+        "usage": "예: -help 로 사용 가능한 옵션을 먼저 확인한 뒤, 필요한 BAR 파일 또는 service instance 인자를 지정합니다.",
+        "result": "결과 파일과 stdout/stderr를 Jobs / Audit에서 확인하고, 모델 이관 전후 비교나 지원 요청 자료로 활용합니다.",
+    },
+    {
+        "name": "diagnostic_dump.sh",
+        "purpose": "OAS service instance 진단 정보를 묶어 장애 분석용 dump를 생성합니다.",
+        "usage": "장애 직후 실행해 로그와 진단 자료를 보존합니다. 실행 전 저장 경로의 여유 공간을 확인하세요.",
+        "result": "생성된 dump는 SR, 내부 분석, 패치 전후 상태 비교에 사용합니다. 파일 경로는 실행 결과와 Jobs / Audit에 남깁니다.",
+    },
+    {
+        "name": "exportarchive.sh",
+        "purpose": "Catalog, security, semantic model 등 OAS 산출물을 BAR archive로 내보낼 때 사용합니다.",
+        "usage": "예: -serviceInstance ssi -bar /u01/oas-admin-lite/backups/catalog/export.bar 처럼 대상 instance와 BAR 경로를 지정합니다.",
+        "result": "생성된 BAR 파일은 백업, 이관, import 전 안전 지점으로 사용합니다. 파일은 /u01/oas-admin-lite/backups 아래 보관하는 것을 권장합니다.",
+    },
+    {
+        "name": "importarchive.sh",
+        "purpose": "BAR archive를 OAS service instance로 가져와 catalog 또는 관련 메타데이터를 반영할 때 사용합니다.",
+        "usage": "실행 전 exportarchive.sh로 현재 상태를 백업하고, 대상 BAR 파일과 옵션을 Preview에서 확인한 뒤 RUN을 입력합니다.",
+        "result": "성공 후 OAS 화면에서 주요 대시보드/분석을 확인하고, 실패 시 Jobs / Audit의 stdout/stderr와 BAR 파일 경로를 같이 검토합니다.",
+    },
+]
+
 PAGE_DESCRIPTIONS = {
     "dashboard": "OAS Admin Lite의 전체 상태와 최근 작업을 한눈에 확인합니다. 경고 항목을 먼저 보고 필요한 상세 화면으로 이동합니다.",
     "resources": "서버 리소스, 주요 OAS 경로, Linux 기본 상태를 조회합니다. 이 화면은 조회 전용이며 시스템 설정을 변경하지 않습니다.",
@@ -288,11 +315,24 @@ def patch_page(ctx, query):
 def scripts_page(ctx, query):
     state = ctx.scripts.state_dict()
     options = "".join('<option value="{0}">{0}</option>'.format(esc(item)) for item in state.get("allowed", []))
-    allowed = "".join("<div>{0}</div>".format(esc(item)) for item in state.get("allowed", []))
+    allowed = "".join("<span class=\"tag\">{0}</span>".format(esc(item)) for item in state.get("allowed", []))
+    guide_cards = "".join(script_guide_card(item) for item in SCRIPT_GUIDES)
     content = """
 <section class="panel">
-  <h2>OAS 관리 스크립트</h2>
-  <dl class="kv compact"><dt>bitools/bin</dt><dd>{bitools}</dd><dt>허용 스크립트</dt><dd>{allowed}</dd></dl>
+  <div class="panel-head"><h2>실행 정책</h2></div>
+  <dl class="kv compact"><dt>bitools/bin</dt><dd>{bitools}</dd><dt>허용 스크립트</dt><dd class="tag-list">{allowed}</dd></dl>
+  <div class="info-list">
+    <div><strong>이 화면에서 가능한 일</strong><p>허용된 OAS 스크립트의 실행 명령을 Preview로 확인하고, RUN 확인 입력 후 oracle 계정 권한으로 실행합니다.</p></div>
+    <div><strong>안전 정책</strong><p>임의 shell 명령은 실행하지 않습니다. 스크립트 이름은 allowlist에서만 선택하며, 실행 결과는 Jobs / Audit에 남습니다.</p></div>
+    <div><strong>결과 활용</strong><p>stdout/stderr와 생성 파일 경로를 작업 이력에서 확인해 백업, 이관, 장애 분석, SR 자료로 활용합니다.</p></div>
+  </div>
+</section>
+<section class="panel">
+  <div class="panel-head"><h2>스크립트별 기능 및 사용 방법</h2></div>
+  <div class="script-grid">{guide_cards}</div>
+</section>
+<section class="panel">
+  <div class="panel-head"><h2>스크립트 실행</h2></div>
   <form method="post" class="stack">
     <label>Script<select name="script">{options}</select></label>
     <label>Arguments<input name="args" placeholder="-serviceInstance ssi -bar /u01/oas-admin-lite/backups/export.bar"></label>
@@ -302,9 +342,21 @@ def scripts_page(ctx, query):
   </form>
   {result}
 </section>
-""".format(bitools=esc(state.get("bitools_bin", "")), allowed=allowed, options=options, result=result_block(state.get("last_command", ""), state.get("last_output", "")))
+""".format(bitools=esc(state.get("bitools_bin", "")), allowed=allowed, guide_cards=guide_cards, options=options, result=result_block(state.get("last_command", ""), state.get("last_output", "")))
     return layout(ctx, "Scripts", "scripts", content, query)
 
+
+def script_guide_card(item):
+    return """
+    <article class="script-card">
+      <h3>{name}</h3>
+      <dl>
+        <dt>기능</dt><dd>{purpose}</dd>
+        <dt>사용 방법</dt><dd>{usage}</dd>
+        <dt>결과 활용</dt><dd>{result}</dd>
+      </dl>
+    </article>
+    """.format(name=esc(item["name"]), purpose=esc(item["purpose"]), usage=esc(item["usage"]), result=esc(item["result"]))
 
 def jobs_page(ctx, query):
     rows = "".join(job_row(job) for job in ctx.store.list(100)) or '<tr><td colspan="5">작업 이력이 없습니다.</td></tr>'

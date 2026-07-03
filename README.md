@@ -324,6 +324,17 @@ patch:
     - "/u01/stage/patches"
 ```
 
+
+## Scripts 화면 안내
+
+Scripts 화면은 허용된 OAS 관리 스크립트만 실행합니다. 화면에는 실행 정책, 허용 스크립트 목록, 스크립트별 기능, 사용 방법, 결과 활용 방법이 함께 표시됩니다.
+
+- `datamodel.sh`: semantic model, connection, data model 관련 정보 추출 또는 관리
+- `diagnostic_dump.sh`: 장애 분석용 진단 dump 생성
+- `exportarchive.sh`: Catalog/security/model 산출물을 BAR archive로 export
+- `importarchive.sh`: BAR archive를 service instance로 import
+
+실행 전 `Preview`로 명령을 확인하고, 실제 실행 시 확인 입력란에 `RUN`을 입력합니다. 결과는 Jobs / Audit에서 stdout/stderr와 함께 확인합니다.
 ## 개발 및 테스트
 
 로컬 테스트 설정:
