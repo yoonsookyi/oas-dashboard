@@ -41,11 +41,11 @@ def make_handler(ctx):
             path = parsed.path
             query = parse_qs(parsed.query)
             if path == "/":
-                self._redirect("/dashboard")
+                self._redirect("/resources")
             elif path == "/static/app.css":
                 self._static_css()
             elif path == "/dashboard":
-                self._html(dashboard_page(ctx, query))
+                self._redirect("/resources")
             elif path == "/resources":
                 self._html(resources_page(ctx, query))
             elif path == "/catalog":
@@ -85,7 +85,7 @@ def make_handler(ctx):
                 else:
                     self.send_error(HTTPStatus.NOT_FOUND, "not found")
             except Exception as exc:
-                fallback = "/dashboard"
+                fallback = "/resources"
                 if parsed.path.startswith("/catalog"):
                     fallback = "/catalog"
                 elif parsed.path.startswith("/patch"):
@@ -194,14 +194,14 @@ SCRIPT_GUIDES = [
 ]
 
 PAGE_DESCRIPTIONS = {
-    "dashboard": "OAS 서버의 런타임 경로, 주요 포트/프로세스, 리소스 상태를 요약해서 보여줍니다. 앱 작업 이력은 Jobs / Audit에서 확인합니다.",
-    "resources": "OAS 서버 운영에 필요한 CPU, Memory, Swap, /u01 Disk, Listener, Process 상태를 상세 조회합니다. 앱 설정값은 Settings에서 확인합니다.",
+    "resources": "OAS 서버의 CPU, Memory, Swap, /u01 Disk, Listener, Process 상태와 주요 런타임 경로를 확인합니다. 앱 설정값은 Settings에서 확인합니다.",
     "catalog": "OAS REST API를 호출해 카탈로그 object 현황을 수집합니다. Endpoint, 인증 사용자, HTTP 상태와 응답 형식을 함께 확인합니다.",
     "patch": "현재 ORACLE_HOME의 OPatch inventory를 조회해 설치된 패치 레벨을 확인합니다. 이 화면은 조회 전용이며 패치를 적용하지 않습니다.",
     "scripts": "허용된 OAS 관리 스크립트만 Preview 후 실행합니다. import/export 및 diagnostic 작업 결과는 Jobs / Audit에 기록됩니다.",
     "jobs": "Catalog 수집, OPatch, OAS 스크립트 실행 이력을 조회합니다. 명령, 결과, 메시지를 audit trail로 확인합니다.",
     "settings": "현재 앱 설정과 OAS 경로, Catalog REST 설정을 표시합니다. 1차 버전에서는 설정 파일을 직접 수정하는 방식입니다.",
 }
+
 
 def layout(ctx, title, active, content, query):
     flash = html.escape(first(query, "flash"))
@@ -242,7 +242,6 @@ def layout(ctx, title, active, content, query):
 
 def nav(active):
     items = [
-        ("dashboard", "Dashboard", "/dashboard"),
         ("resources", "Resources", "/resources"),
         ("catalog", "Catalog", "/catalog"),
         ("patch", "Patch", "/patch"),
@@ -252,32 +251,9 @@ def nav(active):
     ]
     return "".join('<a class="{0}" href="{1}">{2}</a>'.format("active" if key == active else "", href, label) for key, label, href in items)
 
-
-def dashboard_page(ctx, query):
-    snap = ctx.resources.snapshot()
-    oas_cards = "".join(status_card(check) for check in snap.oas_checks)
-    metric_cards = "".join(metric_card(metric) for metric in snap.metrics)
-    resource_rows = "".join(check_row(c, value_second=False) for c in snap.resource_checks)
-    content = """
-<section class="panel">
-  <div class="panel-head"><h2>OAS 런타임 상태</h2><a class="button secondary" href="/resources">상세 보기</a></div>
-  <div class="status-grid">{oas_cards}</div>
-</section>
-<section class="panel">
-  <div class="panel-head"><h2>서버 리소스 요약</h2></div>
-  <div class="metric-grid">{metric_cards}</div>
-</section>
-<section class="panel">
-  <div class="panel-head"><h2>리스너 및 프로세스</h2></div>
-  <table><thead><tr><th>항목</th><th>상태</th><th>값</th><th>상세</th></tr></thead><tbody>{resource_rows}</tbody></table>
-</section>
-""".format(oas_cards=oas_cards, metric_cards=metric_cards, resource_rows=resource_rows)
-    return layout(ctx, "Dashboard", "dashboard", content, query)
-
-
 def resources_page(ctx, query):
     snap = ctx.resources.snapshot()
-    oas_cards = "".join(status_card(check) for check in snap.oas_checks)
+    oas_cards = "".join(path_card(check) for check in snap.oas_checks)
     metric_cards = "".join(metric_card(metric) for metric in snap.metrics)
     resource_rows = "".join(check_row(c, value_second=False) for c in snap.resource_checks)
     content = """
@@ -286,29 +262,41 @@ def resources_page(ctx, query):
   {snapshot}
 </section>
 <section class="panel">
-  <div class="panel-head"><h2>OAS 경로 상태</h2></div>
-  <div class="status-grid">{oas_cards}</div>
-</section>
-<section class="panel">
-  <div class="panel-head"><h2>리소스 지표</h2></div>
+  <div class="panel-head"><h2>서버 리소스 요약</h2></div>
+  {legend}
   <div class="metric-grid">{metric_cards}</div>
 </section>
 <section class="panel">
-  <div class="panel-head"><h2>상세 점검 결과</h2></div>
+  <div class="panel-head"><h2>OAS 런타임 경로</h2></div>
+  <div class="status-grid">{oas_cards}</div>
+</section>
+<section class="panel">
+  <div class="panel-head"><h2>리스너 및 프로세스 상세</h2></div>
   <table><thead><tr><th>항목</th><th>상태</th><th>값</th><th>상세</th></tr></thead><tbody>{resource_rows}</tbody></table>
 </section>
-""".format(snapshot=snapshot_kv(snap), oas_cards=oas_cards, metric_cards=metric_cards, resource_rows=resource_rows)
+""".format(snapshot=snapshot_kv(snap), legend=metric_status_legend(), metric_cards=metric_cards, oas_cards=oas_cards, resource_rows=resource_rows)
     return layout(ctx, "Resources", "resources", content, query)
 
-
-def status_card(check):
+def path_card(check):
+    status_class = "" if check.status == "OK" else check.status
+    note = "" if check.status == "OK" else badge(check.status)
     return """
-    <div class="status-card {status}">
-      <div class="status-card-head"><span>{name}</span>{badge}</div>
+    <div class="status-card path-card {status_class}">
+      <div class="status-card-head"><span>{name}</span>{note}</div>
       <pre>{value}</pre>
       <p>{detail}</p>
     </div>
-    """.format(status=esc(check.status), name=esc(check.name), badge=badge(check.status), value=esc(check.value), detail=esc(check.detail))
+    """.format(status_class=esc(status_class), name=esc(check.name), note=note, value=esc(check.value), detail=esc(check.detail))
+
+
+def metric_status_legend():
+    return """
+    <div class="status-legend">
+      <span><strong class="status-word OK">OK</strong> 정상 범위입니다.</span>
+      <span><strong class="status-word WARN">WARN</strong> 운영자가 확인해야 할 임계치에 근접했거나 일부 조회가 제한된 상태입니다.</span>
+      <span><strong class="status-word FAILED">FAILED</strong> 실패 임계치를 넘었거나 리소스 위험도가 높은 상태입니다.</span>
+    </div>
+    """
 
 
 def metric_card(metric):

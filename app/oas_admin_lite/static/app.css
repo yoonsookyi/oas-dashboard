@@ -235,6 +235,30 @@ td pre,
 .badge.ERROR { color: var(--fail); background: #fdebea; }
 .status-pill { color: var(--teal); background: #e5f4f2; border: 1px solid #b8ded9; }
 
+.status-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-alt);
+  color: #475569;
+  font-size: 12px;
+}
+.status-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.status-word { font-weight: 800; }
+.status-word.OK { color: var(--ok); }
+.status-word.WARN { color: var(--warn); }
+.status-word.FAILED { color: var(--fail); }
+.status-card.path-card { border-color: var(--line); }
+.status-card.path-card.WARN { border-color: #f2d58b; }
+.status-card.path-card.FAILED { border-color: #f6c2bd; }
 .notice {
   max-width: 1440px;
   border-radius: 8px;
