@@ -176,9 +176,20 @@ def first(form, key):
     return values[0]
 
 
+PAGE_DESCRIPTIONS = {
+    "dashboard": "OAS Admin Lite의 전체 상태와 최근 작업을 한눈에 확인합니다. 경고 항목을 먼저 보고 필요한 상세 화면으로 이동합니다.",
+    "resources": "서버 리소스, 주요 OAS 경로, Linux 기본 상태를 조회합니다. 이 화면은 조회 전용이며 시스템 설정을 변경하지 않습니다.",
+    "catalog": "OAS REST API를 호출해 카탈로그 object 현황을 수집합니다. Endpoint, 인증 사용자, HTTP 상태와 응답 형식을 함께 확인합니다.",
+    "patch": "OPatch inventory 조회와 패치 사전 점검, Preview, 실행을 보조합니다. 패치 실행은 허용 경로와 확인 문구를 통과해야 합니다.",
+    "scripts": "허용된 OAS 관리 스크립트만 Preview 후 실행합니다. import/export 및 diagnostic 작업 결과는 Jobs / Audit에 기록됩니다.",
+    "jobs": "Catalog 수집, OPatch, OAS 스크립트 실행 이력을 조회합니다. 명령, 결과, 메시지를 audit trail로 확인합니다.",
+    "settings": "현재 앱 설정과 OAS 경로, Catalog REST 설정을 표시합니다. 1차 버전에서는 설정 파일을 직접 수정하는 방식입니다.",
+}
+
 def layout(ctx, title, active, content, query):
     flash = html.escape(first(query, "flash"))
     error = html.escape(first(query, "error"))
+    description = PAGE_DESCRIPTIONS.get(active, "")
     auth_enabled = bool(os.environ.get("OAS_ADMIN_LITE_PASSWORD_SHA256") or ctx.cfg.security.password_sha256)
     notice = ""
     if flash:
@@ -201,7 +212,7 @@ def layout(ctx, title, active, content, query):
     </aside>
     <main class="content">
       <header class="topbar">
-        <div><h1>{title}</h1><p>{root}</p></div>
+        <div><h1>{title}</h1><p class="page-description">{description}</p><p class="page-path">{root}</p></div>
         <div class="status-pill">{auth}</div>
       </header>
       {notice}
@@ -209,7 +220,7 @@ def layout(ctx, title, active, content, query):
     </main>
   </div>
 </body>
-</html>""".format(title=esc(title), nav=nav(active), root=esc(ctx.cfg.paths.root), auth="Auth Enabled" if auth_enabled else "Local Mode", notice=notice, content=content)
+</html>""".format(title=esc(title), nav=nav(active), description=esc(description), root=esc(ctx.cfg.paths.root), auth="Auth Enabled" if auth_enabled else "Local Mode", notice=notice, content=content)
 
 
 def nav(active):

@@ -107,10 +107,18 @@ h2 { font-size: 16px; line-height: 1.25; margin-bottom: 12px; font-weight: 750; 
 h3 { font-size: 13px; margin-bottom: 7px; font-weight: 750; color: var(--muted); }
 .topbar p,
 .muted { color: var(--muted); }
-.topbar p {
+.page-description {
+  max-width: 900px;
+  margin: 0 0 6px;
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.page-path {
   margin-bottom: 0;
   font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
   font-size: 12px;
+  color: var(--muted);
 }
 
 .grid {
