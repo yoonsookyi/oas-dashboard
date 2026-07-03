@@ -284,7 +284,7 @@ def patch_page(ctx, query):
     <label>Patch Directory<input name="patch_path" placeholder="/u01/oas-admin-lite/packages/patches/patch_id"></label>
     <div class="actions"><button formaction="/patch/precheck" type="submit" class="secondary">사전 점검</button><button formaction="/patch/preview" type="submit" class="secondary">Preview</button></div>
     <label>실행 확인<input name="confirm" placeholder="APPLY"></label>
-    <button formaction="/patch/apply" type="submit">패치 실행</button>
+    <button formaction="/patch/apply" type="submit" class="danger">패치 실행</button>
   </form>
   {result}
 </section>
@@ -305,7 +305,7 @@ def scripts_page(ctx, query):
     <label>Arguments<input name="args" placeholder="-serviceInstance ssi -bar /u01/oas-admin-lite/backups/export.bar"></label>
     <div class="actions"><button formaction="/scripts/preview" type="submit" class="secondary">Preview</button></div>
     <label>실행 확인<input name="confirm" placeholder="RUN"></label>
-    <button formaction="/scripts/run" type="submit">실행</button>
+    <button formaction="/scripts/run" type="submit" class="danger">실행</button>
   </form>
   {result}
 </section>
