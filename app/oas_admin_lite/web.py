@@ -2,6 +2,7 @@ import base64
 import hashlib
 import html
 import os
+import shlex
 import socketserver
 import time
 from http import HTTPStatus
@@ -75,13 +76,15 @@ def make_handler(ctx):
                     self._redirect_flash("/patch", "현재 패치 레벨 조회가 완료되었습니다.")
 
                 elif parsed.path == "/scripts/preview":
-                    ctx.scripts.preview(first(form, "script"), first(form, "args"))
-                    self._redirect_flash("/scripts", "스크립트 실행 명령 Preview가 생성되었습니다.")
+                    script, args, stdin_text = script_request(form)
+                    ctx.scripts.preview(script, args, stdin_text)
+                    self._redirect_flash(script_redirect(script), "스크립트 실행 명령 Preview가 생성되었습니다.")
                 elif parsed.path == "/scripts/run":
+                    script, args, stdin_text = script_request(form)
                     if first(form, "confirm") != "RUN":
                         raise ValueError("실행하려면 확인 입력란에 RUN을 입력해야 합니다.")
-                    ctx.scripts.run(first(form, "script"), first(form, "args"))
-                    self._redirect_flash("/scripts", "스크립트 실행이 완료되었습니다.")
+                    ctx.scripts.run(script, args, stdin_text)
+                    self._redirect_flash(script_redirect(script), "스크립트 실행이 완료되었습니다.")
                 else:
                     self.send_error(HTTPStatus.NOT_FOUND, "not found")
             except Exception as exc:
@@ -91,7 +94,7 @@ def make_handler(ctx):
                 elif parsed.path.startswith("/patch"):
                     fallback = "/patch"
                 elif parsed.path.startswith("/scripts"):
-                    fallback = "/scripts"
+                    fallback = script_redirect(first(form, "script"))
                 self._redirect_error(fallback, str(exc))
 
         def _form(self):
@@ -123,10 +126,12 @@ def make_handler(ctx):
             self.end_headers()
 
         def _redirect_flash(self, path, message):
-            self._redirect("{0}?flash={1}".format(path, quote(message)))
+            sep = "&" if "?" in path else "?"
+            self._redirect("{0}{1}flash={2}".format(path, sep, quote(message)))
 
         def _redirect_error(self, path, message):
-            self._redirect("{0}?error={1}".format(path, quote(message)))
+            sep = "&" if "?" in path else "?"
+            self._redirect("{0}{1}error={2}".format(path, sep, quote(message)))
 
         def _authorized(self):
             expected_hash = (os.environ.get("OAS_ADMIN_LITE_PASSWORD_SHA256") or ctx.cfg.security.password_sha256 or "").strip().lower()
@@ -166,24 +171,63 @@ def first(form, key):
     return values[0]
 
 
-SCRIPT_GUIDES = [
+DATAMODEL_OPERATIONS = [
+    "downloadrpd",
+    "uploadrpd",
+    "uploadxml",
+    "listrpdvariables",
+    "updaterpdvariables",
+    "listconnectionpool",
+    "updateconnectionpool",
+    "renameusers",
+    "deleteusers",
+    "renameapproles",
+    "deleteapproles",
+    "listcustomizationgroups",
+    "-h",
+]
+
+RUNCAT_COMMANDS = [
+    "report",
+    "archive",
+    "unarchive",
+    "createFolder",
+    "delete",
+    "rename",
+    "replace",
+    "localize",
+    "setItemProperties",
+    "upgradeCatalog",
+    "renameAccounts",
+    "forgetAccounts",
+    "setOwnership",
+    "setItemPermissions",
+]
+
+SCRIPT_ACTIONS = [
     {
-        "name": "datamodel.sh",
-        "purpose": "BAR 파일 또는 서비스 인스턴스에서 semantic model, connection, data model 관련 정보를 추출하거나 관리할 때 사용합니다.",
-        "usage": "예: -help 로 사용 가능한 옵션을 먼저 확인한 뒤, 필요한 BAR 파일 또는 service instance 인자를 지정합니다.",
-        "result": "결과 파일과 stdout/stderr를 Jobs / Audit에서 확인하고, 모델 이관 전후 비교나 지원 요청 자료로 활용합니다.",
+        "script": "datamodel.sh",
+        "mode": "datamodel",
+        "label": "BAR 파일에서 시맨틱 모델 추출",
+        "method": "datamodel.sh -h\ndatamodel.sh <operation> -h\ndatamodel.sh downloadrpd <operation options>\n\nValid operations: renameapproles, deleteapproles, renameusers, deleteusers, listconnectionpool, updateconnectionpool, listrpdvariables, updaterpdvariables, downloadrpd, uploadrpd, uploadxml, listcustomizationgroups",
     },
     {
-        "name": "diagnostic_dump.sh",
-        "purpose": "OAS service instance 진단 정보를 묶어 장애 분석용 dump를 생성합니다.",
-        "usage": "장애 직후 실행해 로그와 진단 자료를 보존합니다. 실행 전 저장 경로의 여유 공간을 확인하세요.",
-        "result": "생성된 dump는 SR, 내부 분석, 패치 전후 상태 비교에 사용합니다. 파일 경로는 실행 결과와 Jobs / Audit에 남깁니다.",
+        "script": "exportarchive.sh",
+        "mode": "exportarchive",
+        "label": "환경 메타데이터 BAR 내보내기",
+        "method": "exportarchive.sh <service instance key> <export directory> {optional parameters}\n\nMandatory: service instance key, export directory, encryption password(stdin)\nOptional examples: noconnectionparams, nouserfolders, noconfiguration, nojobs, includedata, includecustommaps, includedaytodaymetadata, nojazn, nodatamodel, nocontentdatasets, advancedoptions=<json path>\n\nOracle Security guideline: encryption password is not passed on the command line. OAS Admin Lite sends it through stdin and does not store it in the command history.",
     },
     {
-        "name": "exportarchive.sh",
-        "purpose": "Catalog, security, semantic model 등 OAS 산출물을 BAR archive로 내보낼 때 사용합니다.",
-        "usage": "예: -serviceInstance ssi -bar /u01/oas-admin-lite/backups/catalog/export.bar 처럼 대상 instance와 BAR 경로를 지정합니다.",
-        "result": "생성된 BAR 파일은 백업, 이관, import 전 안전 지점으로 사용합니다. 파일은 /u01/oas-admin-lite/backups 아래 보관하는 것을 권장합니다.",
+        "script": "diagnostic_dump.sh",
+        "mode": "raw",
+        "label": "Oracle Support 진단 번들 수집",
+        "method": "diagnostic_dump.sh -help\n\n실행 시 BI Diagnostic Dump 버전, oa_platform/WebLogic 버전, exp_jazn-data.xml 덤프 경로, dumpsecuritystores.log 등 진단 경로가 출력됩니다. 출력에 표시된 로그와 덤프 파일을 지원 요청 자료로 사용합니다.",
+    },
+    {
+        "script": "runcat.sh",
+        "mode": "runcat",
+        "label": "Catalog Manager 명령 실행",
+        "method": "runcat.sh -help\nruncat.sh -cmd <command> -help\nruncat.sh -cmd report <command options>\n\nSupported commands: createFolder, delete, rename, report, replace, localize, archive, unarchive, setItemProperties, upgradeCatalog, renameAccounts, forgetAccounts, setOwnership, setItemPermissions",
     },
 ]
 
@@ -191,7 +235,7 @@ PAGE_DESCRIPTIONS = {
     "resources": "OAS 서버의 CPU, Memory, Swap, /u01 Disk, Listener, Process 상태와 주요 런타임 경로를 확인합니다. 앱 설정값은 Settings에서 확인합니다.",
     "catalog": "OAS REST API 수집 결과로 카탈로그 유형, 소유자, 변경일, 폴더 구조, ACL 리스크를 확인합니다.",
     "patch": "현재 ORACLE_HOME의 OPatch inventory를 조회해 설치된 패치 레벨을 확인합니다. 이 화면은 조회 전용이며 패치를 적용하지 않습니다.",
-    "scripts": "허용된 OAS 관리 스크립트만 Preview 후 실행합니다. import/export 및 diagnostic 작업 결과는 Jobs / Audit에 기록됩니다.",
+    "scripts": "OAS service instance 관리 스크립트를 작업 버튼으로 선택하고, 실행 방법 확인 후 매개변수를 입력해 Preview 또는 실행합니다.",
     "jobs": "Catalog 수집, OPatch, OAS 스크립트 실행 이력을 조회합니다. 명령, 결과, 메시지를 audit trail로 확인합니다.",
     "settings": "현재 앱 설정과 OAS 경로, Catalog REST 설정을 표시합니다. 1차 버전에서는 설정 파일을 직접 수정하는 방식입니다.",
 }
@@ -514,49 +558,129 @@ def patch_page(ctx, query):
 
 def scripts_page(ctx, query):
     state = ctx.scripts.state_dict()
-    options = "".join('<option value="{0}">{0}</option>'.format(esc(item)) for item in state.get("allowed", []))
-    allowed = "".join("<span class=\"tag\">{0}</span>".format(esc(item)) for item in state.get("allowed", []))
-    guide_cards = "".join(script_guide_card(item) for item in SCRIPT_GUIDES)
+    actions = script_actions(state)
+    if not actions:
+        content = '<section class="panel"><h2>작업 선택</h2><p class="muted">허용된 스크립트가 없습니다. Settings 또는 app.yaml의 scripts.allowed 값을 확인하세요.</p></section>'
+        return layout(ctx, "Scripts", "scripts", content, query)
+    selected = selected_script(query, actions)
     content = """
 <section class="panel">
-  <div class="panel-head"><h2>실행 정책</h2></div>
-  <dl class="kv compact"><dt>bitools/bin</dt><dd>{bitools}</dd><dt>허용 스크립트</dt><dd class="tag-list">{allowed}</dd></dl>
-  <div class="info-list">
-    <div><strong>이 화면에서 가능한 일</strong><p>허용된 OAS 스크립트의 실행 명령을 Preview로 확인하고, RUN 확인 입력 후 oracle 계정 권한으로 실행합니다.</p></div>
-    <div><strong>안전 정책</strong><p>임의 shell 명령은 실행하지 않습니다. 스크립트 이름은 allowlist에서만 선택하며, 실행 결과는 Jobs / Audit에 남습니다.</p></div>
-    <div><strong>결과 활용</strong><p>stdout/stderr와 생성 파일 경로를 작업 이력에서 확인해 백업, 이관, 장애 분석, SR 자료로 활용합니다.</p></div>
+  <div class="panel-head"><h2>작업 선택</h2><span class="muted">{bitools}</span></div>
+  {picker}
+</section>
+<section class="panel script-run-panel">
+  <div class="panel-head"><h2>{label}</h2><span class="tag">{script}</span></div>
+  <div class="script-run-layout">
+    <div class="command-help"><h3>실행 명령어 방법</h3><pre>{method}</pre></div>
+    <form method="post" class="script-exec-form">
+      <input type="hidden" name="script" value="{script}">
+      <input type="hidden" name="arg_mode" value="{mode}">
+      <div class="script-form-grid">{fields}</div>
+      <div class="actions"><button formaction="/scripts/preview" type="submit" class="secondary">명령어 확인</button></div>
+      <label class="full">실행 확인<input name="confirm" placeholder="RUN"></label>
+      <button formaction="/scripts/run" type="submit" class="danger">실행</button>
+    </form>
   </div>
-</section>
-<section class="panel">
-  <div class="panel-head"><h2>스크립트별 기능 및 사용 방법</h2></div>
-  <div class="script-grid">{guide_cards}</div>
-</section>
-<section class="panel">
-  <div class="panel-head"><h2>스크립트 실행</h2></div>
-  <form method="post" class="stack">
-    <label>Script<select name="script">{options}</select></label>
-    <label>Arguments<input name="args" placeholder="-serviceInstance ssi -bar /u01/oas-admin-lite/backups/export.bar"></label>
-    <div class="actions"><button formaction="/scripts/preview" type="submit" class="secondary">Preview</button></div>
-    <label>실행 확인<input name="confirm" placeholder="RUN"></label>
-    <button formaction="/scripts/run" type="submit" class="danger">실행</button>
-  </form>
   {result}
 </section>
-""".format(bitools=esc(state.get("bitools_bin", "")), allowed=allowed, guide_cards=guide_cards, options=options, result=result_block(state.get("last_command", ""), state.get("last_output", "")))
+""".format(
+        bitools=esc(state.get("bitools_bin", "")),
+        picker=script_picker(actions, selected["script"]),
+        label=esc(selected["label"]),
+        script=esc(selected["script"]),
+        method=esc(selected["method"]),
+        mode=esc(selected["mode"]),
+        fields=script_fields(selected),
+        result=result_block(state.get("last_command", ""), state.get("last_output", "")),
+    )
     return layout(ctx, "Scripts", "scripts", content, query)
 
 
-def script_guide_card(item):
-    return """
-    <article class="script-card">
-      <h3>{name}</h3>
-      <dl>
-        <dt>기능</dt><dd>{purpose}</dd>
-        <dt>사용 방법</dt><dd>{usage}</dd>
-        <dt>결과 활용</dt><dd>{result}</dd>
-      </dl>
-    </article>
-    """.format(name=esc(item["name"]), purpose=esc(item["purpose"]), usage=esc(item["usage"]), result=esc(item["result"]))
+def script_actions(state):
+    allowed = set(state.get("allowed") or [])
+    return [item for item in SCRIPT_ACTIONS if item["script"] in allowed]
+
+
+def selected_script(query, actions):
+    requested = first(query, "script")
+    for item in actions:
+        if item["script"] == requested:
+            return item
+    return actions[0]
+
+
+def script_picker(actions, selected):
+    buttons = []
+    for item in actions:
+        active = " active" if item["script"] == selected else ""
+        buttons.append('<button class="script-option{active}" type="submit" name="script" value="{script}"><strong>{label}</strong><span>{script}</span></button>'.format(active=active, script=esc(item["script"]), label=esc(item["label"])))
+    return '<form method="get" action="/scripts" class="script-picker">{0}</form>'.format("".join(buttons))
+
+
+def script_fields(action):
+    mode = action["mode"]
+    if mode == "datamodel":
+        return """
+        <label>Operation<select name="operation">{operations}</select></label>
+        <label>Operation options<input name="operation_args" placeholder="작업별 -h 출력에서 확인한 옵션 입력"></label>
+        """.format(operations=options(DATAMODEL_OPERATIONS, "downloadrpd"))
+    if mode == "exportarchive":
+        return """
+        <label>Service instance key<input name="service_instance" placeholder="ssi"></label>
+        <label>Export directory<input name="export_dir" placeholder="/u01/oas-admin-lite/backups/export"></label>
+        <label class="full">Optional parameters<input name="export_options" placeholder="noconnectionparams nouserfolders includedata advancedoptions=/path/options.json"></label>
+        <label class="full">Encryption password(stdin)<input type="password" name="stdin_text" autocomplete="new-password" placeholder="명령어 이력에 남기지 않고 stdin으로 전달"></label>
+        """
+    if mode == "runcat":
+        return """
+        <label>Catalog command<select name="catalog_command">{commands}</select></label>
+        <label>Command options<input name="catalog_args" placeholder="-help 또는 선택한 command 옵션"></label>
+        """.format(commands=options(RUNCAT_COMMANDS, "report"))
+    return '<label class="full">Arguments<input name="args" placeholder="help 출력에서 확인한 옵션 입력"></label>'
+
+
+def options(items, selected):
+    return "".join('<option value="{0}"{1}>{0}</option>'.format(esc(item), ' selected' if item == selected else '') for item in items)
+
+
+def script_request(form):
+    script = first(form, "script")
+    mode = first(form, "arg_mode")
+    stdin_text = first(form, "stdin_text")
+    if mode == "datamodel":
+        operation = required(form, "operation", "Operation")
+        raw_args = join_args([operation], first(form, "operation_args"))
+    elif mode == "exportarchive":
+        service_instance = required(form, "service_instance", "Service instance key")
+        export_dir = required(form, "export_dir", "Export directory")
+        stdin_text = required(form, "stdin_text", "Encryption password(stdin)")
+        raw_args = join_args([service_instance, export_dir], first(form, "export_options"))
+    elif mode == "runcat":
+        command = required(form, "catalog_command", "Catalog command")
+        raw_args = join_args(["-cmd", command], first(form, "catalog_args"))
+    else:
+        raw_args = first(form, "args")
+    return script, raw_args, stdin_text
+
+
+def required(form, key, label):
+    value = first(form, key).strip()
+    if not value:
+        raise ValueError("{0} 값을 입력해야 합니다.".format(label))
+    return value
+
+
+def join_args(required_parts, optional_text=""):
+    parts = [shlex.quote(item.strip()) for item in required_parts if item and item.strip()]
+    if optional_text and optional_text.strip():
+        parts.append(optional_text.strip())
+    return " ".join(parts)
+
+
+def script_redirect(script):
+    if not script:
+        return "/scripts"
+    return "/scripts?script={0}".format(quote(script))
 
 def jobs_page(ctx, query):
     rows = "".join(job_row(job) for job in ctx.store.list(100)) or '<tr><td colspan="5">작업 이력이 없습니다.</td></tr>'

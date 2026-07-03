@@ -16,7 +16,7 @@ class CommandResult(object):
         self.log_path = log_path
 
 
-def run_command(command, cwd="", timeout=300, log_dir=""):
+def run_command(command, cwd="", timeout=300, log_dir="", input_text=None):
     started = time.time()
     output = ""
     exit_code = 0
@@ -26,6 +26,7 @@ def run_command(command, cwd="", timeout=300, log_dir=""):
             command,
             cwd=cwd or None,
             universal_newlines=True,
+            input=input_text,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             timeout=timeout,

@@ -38,18 +38,26 @@ class ScriptService(object):
     def state_dict(self):
         saved = self.store.get_json("script_state", {})
         data = self.state.to_dict()
-        data.update(saved)
+        data["last_command"] = saved.get("last_command", data["last_command"])
+        data["last_output"] = saved.get("last_output", data["last_output"])
         data["allowed"] = allowed_scripts(data.get("allowed"))
         return data
 
-    def preview(self, script, raw_args):
+    def preview(self, script, raw_args, stdin_text=""):
         command = self._command(script, raw_args)
-        output = "Preview only. Oracle 문서 기준 service instance/BAR 스크립트는 offline 실행 조건을 확인해야 합니다."
+        output = "Preview only. stdin supplied: {0}".format("yes" if stdin_text else "no")
         self._record("script_preview", command, "SUCCESS", 0, output, time.time(), time.time(), "")
 
-    def run(self, script, raw_args):
+    def run(self, script, raw_args, stdin_text=""):
         command = self._command(script, raw_args)
-        result = run_command(command, cwd=self.cfg.oas.bitools_bin, timeout=3600, log_dir=os.path.join(self.cfg.paths.log_dir, "jobs"))
+        input_text = self._stdin_payload(stdin_text)
+        result = run_command(
+            command,
+            cwd=self.cfg.oas.bitools_bin,
+            timeout=3600,
+            log_dir=os.path.join(self.cfg.paths.log_dir, "jobs"),
+            input_text=input_text,
+        )
         self._record("script_run", result.command, result.status, result.exit_code, result.output, result.started_at, result.ended_at, result.log_path)
         if result.status != "SUCCESS":
             raise RuntimeError(result.output or "script execution failed")
@@ -65,6 +73,13 @@ class ScriptService(object):
         path = os.path.join(self.cfg.oas.bitools_bin, script)
         args = shlex.split(raw_args or "")
         return [path] + args
+
+    def _stdin_payload(self, stdin_text):
+        if not stdin_text:
+            return None
+        if stdin_text.endswith("\n"):
+            return stdin_text
+        return stdin_text + "\n"
 
     def _record(self, job_type, command, status, exit_code, output, started, ended, log_path):
         command_text = " ".join(shlex.quote(item) for item in command)

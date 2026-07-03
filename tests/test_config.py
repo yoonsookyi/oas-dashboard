@@ -15,6 +15,7 @@ class ConfigTests(unittest.TestCase):
         data = parse_simple_yaml(Path("configs/app.yaml.sample").read_text(encoding="utf-8"))
         self.assertEqual(data["server"]["listen"], "127.0.0.1:18080")
         self.assertIn("datamodel.sh", data["scripts"]["allowed"])
+        self.assertIn("runcat.sh", data["scripts"]["allowed"])
         self.assertIn("/u01/stage/patches", data["patch"]["allowed_patch_dirs"])
         self.assertEqual(data["oas"]["catalog_base_url"], "http://localhost:7777")
         self.assertEqual(data["oas"]["catalog_api_path"], "/api/20210901/catalog")
@@ -27,15 +28,29 @@ class ConfigTests(unittest.TestCase):
 
     def test_importarchive_is_blocked(self):
         cfg = load_config("configs/app.local.yaml")
-        cfg.scripts.allowed = ["datamodel.sh", "importarchive.sh"]
-        self.assertEqual(allowed_scripts(cfg.scripts.allowed), ["datamodel.sh"])
+        cfg.scripts.allowed = ["datamodel.sh", "importarchive.sh", "runcat.sh"]
+        self.assertEqual(allowed_scripts(cfg.scripts.allowed), ["datamodel.sh", "runcat.sh"])
         with tempfile.TemporaryDirectory() as tmp:
             store = JobStore(os.path.join(tmp, "test.db"))
             store.set_json("script_state", {"allowed": ["datamodel.sh", "importarchive.sh"]})
             service = ScriptService(cfg, store)
             self.assertNotIn("importarchive.sh", service.state_dict()["allowed"])
+            self.assertIn("runcat.sh", service.state_dict()["allowed"])
             with self.assertRaises(ValueError):
                 service.preview("importarchive.sh", "")
+
+
+    def test_script_preview_uses_stdin_without_command_leak(self):
+        cfg = load_config("configs/app.local.yaml")
+        with tempfile.TemporaryDirectory() as tmp:
+            store = JobStore(os.path.join(tmp, "test.db"))
+            service = ScriptService(cfg, store)
+            service.preview("exportarchive.sh", "ssi /tmp/export", "secret-password")
+            state = service.state_dict()
+            self.assertIn("exportarchive.sh", state["last_command"])
+            self.assertIn("ssi", state["last_command"])
+            self.assertNotIn("secret-password", state["last_command"])
+            self.assertIn("stdin supplied: yes", state["last_output"])
 
     def test_catalog_dashboard_summary(self):
         items = normalize_items([

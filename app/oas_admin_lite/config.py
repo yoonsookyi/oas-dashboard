@@ -44,6 +44,7 @@ class ScriptsConfig(object):
             "datamodel.sh",
             "diagnostic_dump.sh",
             "exportarchive.sh",
+            "runcat.sh",
         ]
 
 
