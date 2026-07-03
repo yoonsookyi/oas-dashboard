@@ -41,7 +41,8 @@ class JobStore(object):
         return conn
 
     def _init_db(self):
-        with self._connect() as conn:
+        conn = self._connect()
+        try:
             conn.execute(
                 """
                 create table if not exists jobs (
@@ -65,13 +66,17 @@ class JobStore(object):
                 )
                 """
             )
+            conn.commit()
+        finally:
+            conn.close()
 
     def add(self, job):
         if not job.started_at:
             job.started_at = time.time()
         if not job.ended_at:
             job.ended_at = time.time()
-        with self._connect() as conn:
+        conn = self._connect()
+        try:
             cur = conn.execute(
                 """
                 insert into jobs(type, command, status, exit_code, started_at, ended_at, log_path, message)
@@ -79,31 +84,38 @@ class JobStore(object):
                 """,
                 (job.type, job.command, job.status, job.exit_code, job.started_at, job.ended_at, job.log_path, job.message),
             )
+            conn.commit()
             return int(cur.lastrowid)
+        finally:
+            conn.close()
 
     def list(self, limit=100):
-        with self._connect() as conn:
+        conn = self._connect()
+        try:
             rows = conn.execute(
                 "select * from jobs order by started_at desc, id desc limit ?",
                 (limit,),
             ).fetchall()
-        return [dict(row) for row in rows]
+            return [dict(row) for row in rows]
+        finally:
+            conn.close()
 
     def set_json(self, key, value):
         payload = json.dumps(value, ensure_ascii=False, indent=2)
-        with self._connect() as conn:
-            conn.execute(
-                "delete from kv where key = ?",
-                (key,),
-            )
-            conn.execute(
-                "insert into kv(key, value) values(?, ?)",
-                (key, payload),
-            )
+        conn = self._connect()
+        try:
+            conn.execute("delete from kv where key = ?", (key,))
+            conn.execute("insert into kv(key, value) values(?, ?)", (key, payload))
+            conn.commit()
+        finally:
+            conn.close()
 
     def get_json(self, key, default=None):
-        with self._connect() as conn:
+        conn = self._connect()
+        try:
             row = conn.execute("select value from kv where key = ?", (key,)).fetchone()
-        if not row:
-            return default
-        return json.loads(row["value"])
+            if not row:
+                return default
+            return json.loads(row["value"])
+        finally:
+            conn.close()

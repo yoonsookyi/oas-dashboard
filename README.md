@@ -103,7 +103,11 @@ oas:
   domain_home: "/u01/app/oracle/config/domains/bi"
   bitools_bin: "/u01/app/oracle/config/domains/bi/bitools/bin"
   analytics_url: "https://oas.example.com/analytics"
+  catalog_base_url: "http://localhost:7777"
+  catalog_api_path: "/api/20210901/catalog"
   catalog_api_url: ""
+  catalog_username: ""
+  catalog_password: ""
 ```
 
 초기 점검을 실행합니다.
@@ -161,6 +165,32 @@ server:
 
 
 Catalog 화면에서 `집계 가능한 object type이 없습니다`가 표시되면, 대부분 `analytics_url`이 OAS 웹 화면이나 로그인 페이지를 가리키고 있는 상태입니다. 실제 카탈로그 목록을 반환하는 REST endpoint가 확인되면 `catalog_api_url`에 별도로 지정하세요.
+
+## Catalog REST 설정
+
+OAS Catalog 현황은 OAS 서버 내부 REST endpoint를 호출해 수집합니다. 기본 설정은 다음 경로를 사용합니다.
+
+```yaml
+oas:
+  catalog_base_url: "http://localhost:7777"
+  catalog_api_path: "/api/20210901/catalog"
+  catalog_api_url: ""
+  catalog_username: "<OAS_USER>"
+  catalog_password: ""
+```
+
+`catalog_api_url`을 지정하면 `catalog_base_url`과 `catalog_api_path`보다 우선합니다.
+
+비밀번호는 파일에 저장하지 않고 환경변수로 주는 방식을 권장합니다.
+
+```bash
+export OAS_ADMIN_LITE_CATALOG_USERNAME="<OAS_USER>"
+export OAS_ADMIN_LITE_CATALOG_PASSWORD="<OAS_PASSWORD>"
+./scripts/stop.sh
+./scripts/start.sh
+```
+
+Catalog 화면에서 `Content-Type`이 `text/html`로 표시되면 REST JSON API가 아니라 OAS 화면 또는 로그인 페이지를 받은 상태입니다. 이 경우 endpoint와 인증 정보를 확인해야 합니다.
 ## Git Pull 방식 업데이트
 
 Git clone 방식으로 배포한 경우 업데이트는 다음 순서로 진행합니다.

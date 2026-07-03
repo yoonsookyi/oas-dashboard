@@ -265,10 +265,10 @@ def catalog_page(ctx, query):
     content = """
 <section class="panel">
   <div class="panel-head"><h2>카탈로그 현황</h2><form method="post" action="/catalog/scan"><button type="submit">수집 실행</button></form></div>
-  <dl class="kv compact"><dt>Endpoint</dt><dd>{endpoint}</dd><dt>Last Scan</dt><dd>{last_scan}</dd><dt>Status</dt><dd>{status}</dd><dt>HTTP</dt><dd>{http_status}</dd><dt>Content-Type</dt><dd>{content_type}</dd><dt>Message</dt><dd>{message}</dd></dl>
+  <dl class="kv compact"><dt>Endpoint</dt><dd>{endpoint}</dd><dt>Auth User</dt><dd>{auth_user}</dd><dt>Last Scan</dt><dd>{last_scan}</dd><dt>Status</dt><dd>{status}</dd><dt>HTTP</dt><dd>{http_status}</dd><dt>Content-Type</dt><dd>{content_type}</dd><dt>Message</dt><dd>{message}</dd></dl>
   <table><thead><tr><th>유형</th><th>개수</th></tr></thead><tbody>{rows}</tbody></table>
 </section>
-""".format(endpoint=esc(summary.get("endpoint", "")), last_scan=fmt_ts(summary.get("last_scan", 0)), status=esc(summary.get("status", "")), http_status=esc(summary.get("http_status", "")), content_type=esc(summary.get("content_type", "")), message=esc(summary.get("message", "")), rows=rows)
+""".format(endpoint=esc(summary.get("endpoint", "")), last_scan=fmt_ts(summary.get("last_scan", 0)), status=esc(summary.get("status", "")), http_status=esc(summary.get("http_status", "")), content_type=esc(summary.get("content_type", "")), message=esc(summary.get("message", "")), auth_user=esc(summary.get("auth_user", "")), rows=rows)
     return layout(ctx, "Catalog", "catalog", content, query)
 
 
@@ -333,6 +333,11 @@ def settings_page(ctx, query):
         ("DOMAIN_HOME", cfg.oas.domain_home),
         ("bitools/bin", cfg.oas.bitools_bin),
         ("Analytics URL", cfg.oas.analytics_url),
+        ("Catalog Base URL", getattr(cfg.oas, "catalog_base_url", "")),
+        ("Catalog API Path", getattr(cfg.oas, "catalog_api_path", "")),
+        ("Catalog API URL", getattr(cfg.oas, "catalog_api_url", "")),
+        ("Catalog Username", getattr(cfg.oas, "catalog_username", "")),
+        ("Catalog Password", "configured" if getattr(cfg.oas, "catalog_password", "") else ""),
     ]
     rows = "".join("<dt>{0}</dt><dd>{1}</dd>".format(esc(k), esc(v)) for k, v in values)
     content = '<section class="panel"><h2>설정</h2><dl class="kv">{0}</dl><p class="muted">1차 버전에서는 화면에서 설정을 수정하지 않고 app.yaml을 읽어 표시합니다.</p></section>'.format(rows)

@@ -95,7 +95,7 @@ OAS REST API를 통해 카탈로그 현황을 수집하는 화면입니다.
 
 현재 1차 구현은 설정된 `analytics_url`에 대한 REST 연결 확인과 JSON 응답의 object type 집계 골격을 제공합니다. 실제 고객 환경의 OAS REST catalog endpoint와 인증 방식이 확정되면 해당 API에 맞춰 수집 로직을 구체화합니다.
 
-수집 결과는 SQLite에 저장되고 Jobs / Audit 화면에 기록됩니다.
+수집 결과는 SQLite에 저장되고 Jobs / Audit 화면에 기록됩니다. REST 인증은 `catalog_username`/`catalog_password` 또는 환경변수 `OAS_ADMIN_LITE_CATALOG_USERNAME`, `OAS_ADMIN_LITE_CATALOG_PASSWORD`를 사용합니다.
 
 ### 3.4 Patch
 
@@ -289,7 +289,11 @@ oas:
   domain_home: "/u01/app/oracle/config/domains/bi"
   bitools_bin: "/u01/app/oracle/config/domains/bi/bitools/bin"
   analytics_url: "https://oas.example.com/analytics"
+  catalog_base_url: "http://localhost:7777"
+  catalog_api_path: "/api/20210901/catalog"
   catalog_api_url: ""
+  catalog_username: ""
+  catalog_password: ""
 ```
 
 기본 listen 주소는 `127.0.0.1:18080`입니다. 외부에 직접 노출하지 않고 SSH tunnel로 접속하는 방식을 권장합니다.
