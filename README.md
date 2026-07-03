@@ -11,7 +11,7 @@ OAS Admin Lite는 Oracle Analytics Server 2026 운영자를 위한 경량 온디
 - Dashboard: OAS Admin Lite 상태와 최근 작업 요약
 - Resources: 서버 리소스, `/u01`, `ORACLE_HOME`, `DOMAIN_HOME`, `bitools/bin` 상태 확인
 - Catalog: OAS REST API 기반 카탈로그 수집 골격
-- Patch: `opatch lsinventory`, 패치 사전 점검, Preview, `opatch apply` 실행
+- Patch: `opatch lsinventory` 기반 현재 패치 레벨 조회
 - Scripts: allowlist 기반 OAS 관리 스크립트 실행
   - `datamodel.sh`
   - `diagnostic_dump.sh`
@@ -312,7 +312,6 @@ export OAS_ADMIN_LITE_PASSWORD_SHA256="<sha256-hash>"
 허용된 작업만 실행합니다.
 
 - `ORACLE_HOME/OPatch/opatch lsinventory`
-- 허용된 패치 경로 아래에서 `opatch apply`
 - `bitools/bin` 아래 allowlist 스크립트
 - 서버 리소스 조회용 read-only 명령
 
@@ -364,7 +363,7 @@ http://127.0.0.1:18080
 - Python 표준 라이브러리 기반 웹앱
 - 7개 화면 구성
 - SQLite Jobs / Audit 저장
-- OPatch 실행 골격
+- OPatch inventory 조회
 - OAS script allowlist 실행 골격
 - 온디맨드 운영 스크립트
 - Git clone 및 release package 배포 흐름
@@ -372,7 +371,6 @@ http://127.0.0.1:18080
 추가 구체화 필요:
 
 - 고객 OAS 환경의 실제 Catalog REST endpoint 및 인증 방식 반영
-- OPatch prereq 결과 파싱
 - 스크립트별 전용 입력 UI
 - CSV/JSON 결과 다운로드
 - 패치 전후 자동 진단/백업 절차 강화

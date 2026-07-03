@@ -73,17 +73,7 @@ def make_handler(ctx):
                 elif parsed.path == "/patch/inventory":
                     ctx.patch.inventory()
                     self._redirect_flash("/patch", "현재 패치 레벨 조회가 완료되었습니다.")
-                elif parsed.path == "/patch/precheck":
-                    ctx.patch.precheck(first(form, "patch_path"))
-                    self._redirect_flash("/patch", "패치 사전 점검이 완료되었습니다.")
-                elif parsed.path == "/patch/preview":
-                    ctx.patch.preview(first(form, "patch_path"))
-                    self._redirect_flash("/patch", "패치 실행 명령 Preview가 생성되었습니다.")
-                elif parsed.path == "/patch/apply":
-                    if first(form, "confirm") != "APPLY":
-                        raise ValueError("실행하려면 확인 입력란에 APPLY를 입력해야 합니다.")
-                    ctx.patch.apply(first(form, "patch_path"))
-                    self._redirect_flash("/patch", "패치 실행이 완료되었습니다. 상세 로그를 확인하세요.")
+
                 elif parsed.path == "/scripts/preview":
                     ctx.scripts.preview(first(form, "script"), first(form, "args"))
                     self._redirect_flash("/scripts", "스크립트 실행 명령 Preview가 생성되었습니다.")
@@ -180,7 +170,7 @@ PAGE_DESCRIPTIONS = {
     "dashboard": "OAS Admin Lite의 전체 상태와 최근 작업을 한눈에 확인합니다. 경고 항목을 먼저 보고 필요한 상세 화면으로 이동합니다.",
     "resources": "서버 리소스, 주요 OAS 경로, Linux 기본 상태를 조회합니다. 이 화면은 조회 전용이며 시스템 설정을 변경하지 않습니다.",
     "catalog": "OAS REST API를 호출해 카탈로그 object 현황을 수집합니다. Endpoint, 인증 사용자, HTTP 상태와 응답 형식을 함께 확인합니다.",
-    "patch": "OPatch inventory 조회와 패치 사전 점검, Preview, 실행을 보조합니다. 패치 실행은 허용 경로와 확인 문구를 통과해야 합니다.",
+    "patch": "현재 ORACLE_HOME의 OPatch inventory를 조회해 설치된 패치 레벨을 확인합니다. 이 화면은 조회 전용이며 패치를 적용하지 않습니다.",
     "scripts": "허용된 OAS 관리 스크립트만 Preview 후 실행합니다. import/export 및 diagnostic 작업 결과는 Jobs / Audit에 기록됩니다.",
     "jobs": "Catalog 수집, OPatch, OAS 스크립트 실행 이력을 조회합니다. 명령, 결과, 메시지를 audit trail로 확인합니다.",
     "settings": "현재 앱 설정과 OAS 경로, Catalog REST 설정을 표시합니다. 1차 버전에서는 설정 파일을 직접 수정하는 방식입니다.",
@@ -285,21 +275,13 @@ def catalog_page(ctx, query):
 
 def patch_page(ctx, query):
     state = ctx.patch.state_dict()
-    allowed = "".join("<div>{0}</div>".format(esc(item)) for item in state.get("allowed_patch_dirs", []))
     content = """
 <section class="panel">
-  <h2>패치 및 업데이트</h2>
-  <dl class="kv compact"><dt>ORACLE_HOME</dt><dd>{oracle_home}</dd><dt>OPatch</dt><dd>{opatch}</dd><dt>허용 경로</dt><dd>{allowed}</dd></dl>
-  <div class="actions"><form method="post" action="/patch/inventory"><button type="submit" class="secondary">현재 패치 조회</button></form></div>
-  <form method="post" class="stack">
-    <label>Patch Directory<input name="patch_path" placeholder="/u01/oas-admin-lite/packages/patches/patch_id"></label>
-    <div class="actions"><button formaction="/patch/precheck" type="submit" class="secondary">사전 점검</button><button formaction="/patch/preview" type="submit" class="secondary">Preview</button></div>
-    <label>실행 확인<input name="confirm" placeholder="APPLY"></label>
-    <button formaction="/patch/apply" type="submit" class="danger">패치 실행</button>
-  </form>
+  <div class="panel-head"><h2>현재 패치 레벨</h2><form method="post" action="/patch/inventory"><button type="submit">현재 패치 조회</button></form></div>
+  <dl class="kv compact"><dt>ORACLE_HOME</dt><dd>{oracle_home}</dd><dt>OPatch</dt><dd>{opatch}</dd></dl>
   {result}
 </section>
-""".format(oracle_home=esc(state.get("oracle_home", "")), opatch=esc(state.get("opatch_path", "")), allowed=allowed, result=result_block(state.get("last_command", ""), state.get("last_output", "")))
+""".format(oracle_home=esc(state.get("oracle_home", "")), opatch=esc(state.get("opatch_path", "")), result=result_block(state.get("last_command", ""), state.get("last_output", "")))
     return layout(ctx, "Patch", "patch", content, query)
 
 
