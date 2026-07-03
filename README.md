@@ -40,7 +40,7 @@ flowchart LR
 ## 주요 기능
 
 - Resources: 첫 화면으로 CPU, Memory, Swap, `/u01` Disk, OAS 런타임 경로, OAS/OHS listener, OAS/OHS process 상태 조회
-- Catalog: OAS REST API 기반 카탈로그 수집 골격
+- Catalog: OAS REST API 기반 유형별 현황, owner, 변경일, 폴더 구조, ACL 리스크 대시보드
 - Patch: `opatch lsinventory` 기반 현재 패치 레벨 조회
 - Scripts: allowlist 기반 OAS 관리 스크립트 실행
   - `datamodel.sh`
@@ -198,6 +198,15 @@ Catalog 화면에서 `집계 가능한 object type이 없습니다`가 표시되
 ## Catalog REST 설정
 
 OAS Catalog 현황은 OAS 서버 내부 REST endpoint를 호출해 수집합니다. 기본 설정은 다음 경로를 사용합니다.
+
+Catalog 화면은 Oracle Analytics Server 공식 REST API 문서를 기준으로 구현합니다.
+
+- [Catalog REST Endpoints](https://docs.oracle.com/en/middleware/bi/analytics-server/oasri/api-catalog.html)
+- [Get catalog items](https://docs.oracle.com/en/middleware/bi/analytics-server/oasri/op-20210901-catalog-get.html)
+- [Get catalog items by type](https://docs.oracle.com/en/middleware/bi/analytics-server/oasri/op-20210901-catalog-type-get.html)
+- [Get catalog item ACL](https://docs.oracle.com/en/middleware/bi/analytics-server/oasri/op-20210901-catalog-type-id-actions-getacl-post.html)
+
+수집 실행 시 /catalog에서 지원 type을 확인하고, type별 /catalog/{type} 결과를 요약합니다. ACL 리스크는 과도한 REST 호출을 피하기 위해 일부 자산을 대상으로 /actions/getACL을 조회하는 MVP 방식입니다.
 
 ```yaml
 oas:
@@ -410,9 +419,9 @@ http://127.0.0.1:18080
 
 추가 구체화 필요:
 
-- 고객 OAS 환경의 실제 Catalog REST endpoint 및 인증 방식 반영
+- 고객 OAS 환경의 실제 Catalog REST endpoint, page/limit 정책, ACL 조회 범위 튜닝
 - 스크립트별 전용 입력 UI
-- CSV/JSON 결과 다운로드
+- Catalog Detail CSV/JSON 결과 다운로드
 - 패치 전후 자동 진단/백업 절차 강화
 
 ## OAS 문서 기준

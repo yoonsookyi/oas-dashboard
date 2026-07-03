@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from app.oas_admin_lite.catalog import CatalogService, infer_counts
+from app.oas_admin_lite.catalog import CatalogService, analyze_acl, build_dashboard, infer_counts, normalize_items
 from app.oas_admin_lite.config import load_config, parse_simple_yaml
 from app.oas_admin_lite.scripts_runner import ScriptService, allowed_scripts
 from app.oas_admin_lite.storage import JobStore
@@ -37,6 +37,25 @@ class ConfigTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 service.preview("importarchive.sh", "")
 
+    def test_catalog_dashboard_summary(self):
+        items = normalize_items([
+            {"id": "L0BDYXRhbG9nL3NoYXJlZC9GaW5hbmNlL1JldmVudWU=", "name": "Revenue", "type": "analysis", "owner": "finance_ops", "lastModified": "2026-07-01T09:42:00Z"},
+            {"id": "L0BDYXRhbG9nL3NoYXJlZC9TYWxlcy9FeGVj", "name": "Executive", "type": "dashboard", "owner": "bi_admin", "lastModified": "2026-06-30T14:18:00Z"},
+            {"id": "legacy", "name": "Legacy", "type": "analysis", "owner": "", "lastModified": "2024-03-11T22:05:00Z", "parentId": "archive"},
+        ])
+        items[1]["aclRisk"] = "WARN"
+        items[2]["aclRisk"] = "FAILED"
+        summary = build_dashboard("http://localhost:7777/api/20210901/catalog", "http://localhost:7777/api/20210901/catalog", "weblogic", 1, "SUCCESS", "HTTP 200 OK", "application/json", "ok", items, ["analysis", "dashboard"], [], {"checked": 2, "eligible": 3, "risk_total": 2, "broad_write": 1, "permission_management": 1, "acl_failed": 0})
+        self.assertEqual(summary["total_assets"], 3)
+        self.assertEqual(summary["counts"]["analysis"], 2)
+        self.assertEqual(summary["owner_count"], 3)
+        self.assertEqual(summary["owners"][0]["owner"], "finance_ops")
+        self.assertEqual(summary["acl_summary"]["risk_total"], 2)
+
+    def test_analyze_acl_risk(self):
+        risk = analyze_acl([{"accountDisplayName": "Authenticated User", "permissions": {"read": True, "write": True, "changePermission": False}}])
+        self.assertEqual(risk["level"], "FAILED")
+        self.assertEqual(risk["broad_write"], 1)
     def test_catalog_endpoint_and_basic_auth(self):
         cfg = load_config("configs/app.local.yaml")
         cfg.oas.catalog_base_url = "http://localhost:7777"

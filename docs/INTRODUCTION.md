@@ -75,11 +75,26 @@ OAS 런타임 경로는 상태 대시보드가 아니라 운영자가 참조할 
 
 ### 3.2 Catalog
 
-OAS REST API를 통해 카탈로그 현황을 수집하는 화면입니다.
+OAS REST API를 통해 카탈로그 자산 대시보드를 구성하는 화면입니다.
 
-현재 1차 구현은 설정된 `analytics_url`에 대한 REST 연결 확인과 JSON 응답의 object type 집계 골격을 제공합니다. 실제 고객 환경의 OAS REST catalog endpoint와 인증 방식이 확정되면 해당 API에 맞춰 수집 로직을 구체화합니다.
+표시 항목:
 
-수집 결과는 SQLite에 저장되고 Jobs / Audit 화면에 기록됩니다. REST 인증은 `catalog_username`/`catalog_password` 또는 환경변수 `OAS_ADMIN_LITE_CATALOG_USERNAME`, `OAS_ADMIN_LITE_CATALOG_PASSWORD`를 사용합니다.
+- 수집 상태: endpoint, 인증 사용자, 마지막 수집 시각, HTTP 상태, 메시지
+- Summary 카드: 전체 자산 수, 최근 30일 변경 수, 고유 owner 수, ACL 리스크 수
+- 유형별 현황: folder, analysis, dashboard, workbook, dataset, report 등 type별 수량
+- 폴더 구조 요약: 상위 folder path별 자산 수
+- ACL 리스크: broad write, permission management, ACL 조회 실패
+- Owner Top 10: owner별 자산 수, 최근 변경일, 주요 폴더, 리스크 수
+- Catalog Detail: type, owner, folder, ACL risk 기준 필터와 상세 목록
+
+구현 기준은 Oracle Analytics Server 공식 REST API 문서입니다.
+
+- [Catalog REST Endpoints](https://docs.oracle.com/en/middleware/bi/analytics-server/oasri/api-catalog.html)
+- [Get catalog items](https://docs.oracle.com/en/middleware/bi/analytics-server/oasri/op-20210901-catalog-get.html)
+- [Get catalog items by type](https://docs.oracle.com/en/middleware/bi/analytics-server/oasri/op-20210901-catalog-type-get.html)
+- [Get catalog item ACL](https://docs.oracle.com/en/middleware/bi/analytics-server/oasri/op-20210901-catalog-type-id-actions-getacl-post.html)
+
+수집 결과는 SQLite에 저장되고 Jobs / Audit 화면에 기록됩니다. REST 인증은 catalog_username/catalog_password 또는 환경변수 OAS_ADMIN_LITE_CATALOG_USERNAME, OAS_ADMIN_LITE_CATALOG_PASSWORD를 사용합니다. ACL 조회는 과도한 호출을 피하기 위해 일부 자산을 대상으로 수행하는 MVP 방식입니다.
 
 ### 3.3 Patch
 
@@ -483,7 +498,7 @@ export OAS_ADMIN_LITE_PASSWORD_SHA256="<sha256-hash>"
 
 - Python 3.6 이상 표준 라이브러리 기반 웹앱
 - Resources 화면
-- Catalog 화면 및 REST 호출 골격
+- Catalog 대시보드 및 REST 수집 요약
 - Patch 화면 및 OPatch 실행 골격
 - Scripts 화면 및 allowlist 기반 실행
 - Jobs / Audit SQLite 저장
@@ -504,14 +519,14 @@ export OAS_ADMIN_LITE_PASSWORD_SHA256="<sha256-hash>"
 
 ### 9.1 Catalog REST 상세화 필요
 
-현재 Catalog 기능은 OAS REST API 연결과 JSON 응답 집계 골격까지 구현되어 있습니다.
+현재 Catalog 기능은 OAS REST API 기반 유형, owner, 폴더, ACL 리스크 요약까지 구현되어 있습니다.
 
 다음 단계에서 고객 OAS 환경의 실제 REST endpoint, 인증 방식, 필요한 catalog object schema를 확인해 다음 항목을 구체화해야 합니다.
 
-- catalog tree 조회
-- object type별 정확한 집계
-- shared folder 기준 필터링
-- CSV/JSON 다운로드
+- catalog tree/path 정확도 개선
+- type별 page/limit 정책 튜닝
+- shared folder 기준 필터링 고도화
+- Catalog Detail CSV/JSON 다운로드
 - 실패 시 재시도 및 상세 오류 표시
 
 ### 9.2 OPatch 조회 확장

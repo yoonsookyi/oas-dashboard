@@ -189,7 +189,7 @@ SCRIPT_GUIDES = [
 
 PAGE_DESCRIPTIONS = {
     "resources": "OAS 서버의 CPU, Memory, Swap, /u01 Disk, Listener, Process 상태와 주요 런타임 경로를 확인합니다. 앱 설정값은 Settings에서 확인합니다.",
-    "catalog": "OAS REST API를 호출해 카탈로그 object 현황을 수집합니다. Endpoint, 인증 사용자, HTTP 상태와 응답 형식을 함께 확인합니다.",
+    "catalog": "OAS REST API 수집 결과로 카탈로그 유형, 소유자, 변경일, 폴더 구조, ACL 리스크를 확인합니다.",
     "patch": "현재 ORACLE_HOME의 OPatch inventory를 조회해 설치된 패치 레벨을 확인합니다. 이 화면은 조회 전용이며 패치를 적용하지 않습니다.",
     "scripts": "허용된 OAS 관리 스크립트만 Preview 후 실행합니다. import/export 및 diagnostic 작업 결과는 Jobs / Audit에 기록됩니다.",
     "jobs": "Catalog 수집, OPatch, OAS 스크립트 실행 이력을 조회합니다. 명령, 결과, 메시지를 audit trail로 확인합니다.",
@@ -310,22 +310,180 @@ def metric_card(metric):
 
 def catalog_page(ctx, query):
     summary = ctx.catalog.last_summary()
-    counts = summary.get("counts") or {}
-    if counts:
-        rows = "".join("<tr><td>{0}</td><td>{1}</td></tr>".format(esc(k), v) for k, v in sorted(counts.items()))
-    elif summary.get("last_scan", 0):
-        rows = '<tr><td colspan="2">집계 가능한 object type이 없습니다. 위의 Message와 Content-Type을 확인하세요.</td></tr>'
-    else:
-        rows = '<tr><td colspan="2">아직 카탈로그 수집을 실행하지 않았습니다.</td></tr>'
+    type_rows = summary.get("type_rows") or rows_from_counts(summary.get("counts") or {})
+    owner_rows = summary.get("owners") or []
+    folder_rows = summary.get("folder_rows") or []
+    items = filtered_catalog_items(summary.get("items") or [], query)
+    acl_summary = summary.get("acl_summary") or {}
     content = """
-<section class="panel">
-  <div class="panel-head"><h2>카탈로그 현황</h2><form method="post" action="/catalog/scan"><button type="submit">수집 실행</button></form></div>
-  <dl class="kv compact"><dt>Endpoint</dt><dd>{endpoint}</dd><dt>Auth User</dt><dd>{auth_user}</dd><dt>Last Scan</dt><dd>{last_scan}</dd><dt>Status</dt><dd>{status}</dd><dt>HTTP</dt><dd>{http_status}</dd><dt>Content-Type</dt><dd>{content_type}</dd><dt>Message</dt><dd>{message}</dd></dl>
-  <table><thead><tr><th>유형</th><th>개수</th></tr></thead><tbody>{rows}</tbody></table>
+<section class="panel compact-panel" id="summary">
+  <div class="panel-head">
+    <h2>수집 상태</h2>
+    <form method="post" action="/catalog/scan"><button type="submit">수집 실행</button></form>
+  </div>
+  <dl class="kv compact"><dt>Endpoint</dt><dd>{endpoint}</dd><dt>Auth User</dt><dd>{auth_user}</dd><dt>Last Scan</dt><dd>{last_scan}</dd><dt>Status</dt><dd>{status}</dd><dt>HTTP</dt><dd>{http_status}</dd><dt>Message</dt><dd>{message}</dd></dl>
+  <div class="catalog-summary">
+    {total_card}
+    {modified_card}
+    {owner_card}
+    {acl_card}
+  </div>
 </section>
-""".format(endpoint=esc(summary.get("endpoint", "")), last_scan=fmt_ts(summary.get("last_scan", 0)), status=esc(summary.get("status", "")), http_status=esc(summary.get("http_status", "")), content_type=esc(summary.get("content_type", "")), message=esc(summary.get("message", "")), auth_user=esc(summary.get("auth_user", "")), rows=rows)
+<section class="insight-grid">
+  <section class="panel compact-panel">
+    <div class="panel-head"><h2>유형별 현황</h2></div>
+    {type_chart}
+  </section>
+  <section class="panel compact-panel">
+    <div class="panel-head"><h2>폴더 구조 요약</h2></div>
+    {folder_tree}
+  </section>
+  <section class="panel compact-panel">
+    <div class="panel-head"><h2>ACL 리스크</h2></div>
+    {acl_panel}
+  </section>
+</section>
+<section class="panel compact-panel owner-panel">
+  <div class="panel-head"><h2>Owner Top 10</h2></div>
+  {owner_table}
+</section>
+<section class="panel" id="detail">
+  <div class="panel-head"><h2>Catalog Detail</h2><span class="muted">최대 {detail_limit}개 표시</span></div>
+  {filters}
+  {detail_table}
+</section>
+""".format(
+        endpoint=esc(summary.get("endpoint", "")),
+        auth_user=esc(summary.get("auth_user", "")),
+        last_scan=fmt_ts(summary.get("last_scan", 0)),
+        status=badge(summary.get("status", "READY")),
+        http_status=esc(summary.get("http_status", "")),
+        message=esc(summary.get("message", "")),
+        total_card=catalog_card("Total Assets", summary.get("total_assets", 0), "수집된 catalog item 전체", ""),
+        modified_card=catalog_card("Modified 30 Days", summary.get("modified_30_days", 0), "최근 변경된 이관 영향 후보", "warn"),
+        owner_card=catalog_card("Owner Count", summary.get("owner_count", 0), "고유 owner 수", ""),
+        acl_card=catalog_card("ACL Risks", acl_summary.get("risk_total", 0), "ACL checked {0}/{1}".format(acl_summary.get("checked", 0), acl_summary.get("eligible", 0)), "risk"),
+        type_chart=type_chart(type_rows),
+        folder_tree=folder_tree(folder_rows),
+        acl_panel=acl_panel(acl_summary),
+        owner_table=owner_table(owner_rows),
+        filters=catalog_filters(summary, query),
+        detail_table=catalog_detail_table(items),
+        detail_limit=esc((summary.get("limits") or {}).get("detail_limit", 100)),
+    )
     return layout(ctx, "Catalog", "catalog", content, query)
 
+
+def rows_from_counts(counts):
+    return [{"type": key, "count": counts[key]} for key in sorted(counts, key=lambda item: counts[item], reverse=True)]
+
+
+def catalog_card(label, value, detail, extra_class):
+    return '<div class="catalog-card {3}"><span>{0}</span><strong>{1}</strong><p>{2}</p></div>'.format(esc(label), esc(value), esc(detail), esc(extra_class))
+
+
+def type_chart(rows):
+    if not rows:
+        return '<p class="muted">아직 유형별 수집 결과가 없습니다.</p>'
+    max_count = max([int(row.get("count", 0) or 0) for row in rows] + [1])
+    body = []
+    for row in rows[:10]:
+        count = int(row.get("count", 0) or 0)
+        percent = int(round((count / float(max_count)) * 100)) if max_count else 0
+        body.append('<div class="type-row"><span>{0}</span><div class="bar"><i style="width:{1}%"></i></div><strong>{2}</strong></div>'.format(esc(row.get("type", "unknown")), percent, count))
+    return '<div class="type-bars">{0}</div>'.format("".join(body))
+
+
+def folder_tree(rows):
+    if not rows:
+        return '<p class="muted">아직 폴더 구조 수집 결과가 없습니다.</p>'
+    body = []
+    for row in rows[:10]:
+        folder = row.get("folder", "unknown")
+        body.append('<div>{0} <strong>{1}</strong></div>'.format(esc(folder), esc(row.get("count", 0))))
+    return '<div class="folder-tree">{0}</div>'.format("".join(body))
+
+
+def acl_panel(summary):
+    if not summary or not summary.get("checked"):
+        return '<p class="muted">ACL은 수집 실행 후 상위 일부 자산을 대상으로 확인합니다.</p>'
+    rows = [
+        ("Broad write permission", summary.get("broad_write", 0), "넓은 역할에 write/delete/권한관리 권한 존재", "FAILED" if summary.get("broad_write", 0) else "OK"),
+        ("Permission management", summary.get("permission_management", 0), "changePermission 또는 takeOwnership 권한 존재", "WARN" if summary.get("permission_management", 0) else "OK"),
+        ("ACL fetch failed", summary.get("acl_failed", 0), "권한 부족 또는 API 오류로 ACL 확인 실패", "WARN" if summary.get("acl_failed", 0) else "OK"),
+    ]
+    body = "".join('<div class="risk-item"><strong>{0} {1}</strong><p class="muted">{2}</p></div>'.format(esc(name), count_badge(status, count), esc(detail)) for name, count, detail, status in rows)
+    return '<div class="risk-list">{0}</div>'.format(body)
+
+
+def owner_table(rows):
+    if not rows:
+        return '<p class="muted">아직 owner 기준 수집 결과가 없습니다.</p>'
+    body = []
+    for row in rows[:10]:
+        status = "FAILED" if str(row.get("owner", "")).lower() == "unknown" else "WARN" if int(row.get("risk", 0) or 0) else "OK"
+        body.append('<tr><td>{0}</td><td>{1}</td><td>{2}</td><td>{3}</td><td>{4}</td></tr>'.format(esc(row.get("owner", "unknown")), esc(row.get("count", 0)), esc(row.get("lastModified", "") or "-"), esc(row.get("folder", "-")), count_badge(status, int(row.get("risk", 0) or 0))))
+    return '<table class="owner-table"><thead><tr><th>Owner</th><th>Items</th><th>최근 변경</th><th>주요 폴더</th><th>리스크</th></tr></thead><tbody>{0}</tbody></table>'.format("".join(body))
+
+
+def catalog_filters(summary, query):
+    type_value = first(query, "type")
+    owner_value = first(query, "owner")
+    risk_value = first(query, "risk")
+    folder_value = first(query, "folder")
+    type_options = ['<option value="">All</option>']
+    for row in summary.get("type_rows") or []:
+        value = row.get("type", "")
+        type_options.append('<option value="{0}"{1}>{0}</option>'.format(esc(value), selected(value, type_value)))
+    owner_options = ['<option value="">All owners</option>']
+    for row in summary.get("owners") or []:
+        value = row.get("owner", "")
+        owner_options.append('<option value="{0}"{1}>{0}</option>'.format(esc(value), selected(value, owner_value)))
+    return """
+  <form method="get" action="/catalog" class="filter-grid">
+    <label>Type<select name="type">{type_options}</select></label>
+    <label>Owner<select name="owner">{owner_options}</select></label>
+    <label>Folder<input name="folder" value="{folder_value}" placeholder="/shared/Finance"></label>
+    <label>ACL Risk<select name="risk"><option value=""{risk_all}>All</option><option value="WARN"{risk_warn}>WARN/FAILED</option><option value="FAILED"{risk_failed}>FAILED only</option></select></label>
+    <label>Apply<button type="submit" class="secondary">필터 적용</button></label>
+  </form>
+""".format(type_options="".join(type_options), owner_options="".join(owner_options), folder_value=esc(folder_value), risk_all=selected("", risk_value), risk_warn=selected("WARN", risk_value), risk_failed=selected("FAILED", risk_value))
+
+
+def filtered_catalog_items(items, query):
+    type_value = first(query, "type")
+    owner_value = first(query, "owner")
+    risk_value = first(query, "risk")
+    folder_value = first(query, "folder").lower()
+    result = []
+    for item in items:
+        if type_value and item.get("type") != type_value:
+            continue
+        if owner_value and item.get("owner") != owner_value:
+            continue
+        if folder_value and folder_value not in (item.get("folder", "") or "").lower():
+            continue
+        if risk_value == "FAILED" and item.get("aclRisk") != "FAILED":
+            continue
+        if risk_value == "WARN" and item.get("aclRisk") not in ("WARN", "FAILED"):
+            continue
+        result.append(item)
+    return result
+
+
+def catalog_detail_table(items):
+    if not items:
+        return '<p class="muted">표시할 catalog item이 없습니다. 수집 실행 또는 필터 조건을 확인하세요.</p>'
+    body = []
+    for item in items:
+        risk = item.get("aclRisk") or "UNKNOWN"
+        badge_status = risk if risk in ("OK", "WARN", "FAILED") else "WARN"
+        body.append('<tr><td>{name}</td><td>{type}</td><td>{owner}</td><td>{modified}</td><td>{folder}</td><td><span class="acl"><code>{acl}</code></span></td><td>{risk}</td></tr>'.format(name=esc(item.get("name", "-")), type=esc(item.get("type", "unknown")), owner=esc(item.get("owner", "unknown")), modified=esc(item.get("lastModified", "") or "-"), folder=esc(item.get("folder", "unknown")), acl=esc(item.get("aclSummary", "ACL 미조회")), risk=badge(badge_status)))
+    return '<table><thead><tr><th>Name</th><th>Type</th><th>Owner</th><th>Last Modified</th><th>Folder</th><th>ACL</th><th>Risk</th></tr></thead><tbody>{0}</tbody></table>'.format("".join(body))
+
+
+def selected(value, actual):
+    return ' selected' if str(value) == str(actual) else ''
 
 def patch_page(ctx, query):
     state = ctx.patch.state_dict()
@@ -442,6 +600,10 @@ def result_block(command, output):
 
 def badge(status):
     return '<span class="badge {0}">{0}</span>'.format(esc(status))
+
+
+def count_badge(status, value):
+    return '<span class="badge {0}">{1}</span>'.format(esc(status), esc(value))
 
 
 def fmt_ts(value, fmt="%Y-%m-%d %H:%M:%S"):
