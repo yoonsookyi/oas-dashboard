@@ -6,6 +6,37 @@ OAS Admin Lite는 Oracle Analytics Server 2026 운영자를 위한 경량 온디
 
 상세 소개 문서는 [docs/INTRODUCTION.md](docs/INTRODUCTION.md)를 참고하세요.
 
+## 아키텍처 개요
+
+OAS Admin Lite는 OAS 서버 안에서 `oracle` 계정으로 필요할 때만 실행되는 Python 웹앱입니다. Dashboard와 Resources는 OAS 서버 상태를 조회하고, 앱 실행 이력과 설정값은 Jobs / Audit 및 Settings에서 분리해 보여줍니다.
+
+```mermaid
+flowchart LR
+    Admin["운영자 브라우저"]
+    Tunnel["SSH Tunnel\n또는 내부망 접속"]
+    App["OAS Admin Lite\nPython HTTP App\n/u01/oas-admin-lite"]
+    Config["app/config/app.yaml\n환경변수"]
+    DB["SQLite\nJobs / Audit"]
+    Logs["logs/jobs\nstdout / stderr"]
+    OAS["OAS 2026 / FMW / OHS"]
+    Catalog["Catalog REST API\nhttp://localhost:7777/api/20210901/catalog"]
+    OPatch["ORACLE_HOME/OPatch\nopatch lsinventory"]
+    Scripts["DOMAIN_HOME/bitools/bin\nallowlist scripts"]
+    OS["Linux read-only checks\nCPU / Memory / Disk / Port / Process"]
+
+    Admin --> Tunnel --> App
+    App --> Config
+    App --> DB
+    App --> Logs
+    App --> Catalog
+    App --> OPatch
+    App --> Scripts
+    App --> OS
+    Catalog --> OAS
+    OPatch --> OAS
+    Scripts --> OAS
+```
+
 ## 주요 기능
 
 - Dashboard: OAS 서버 런타임 경로, 리소스, 리스너/프로세스 상태 요약
