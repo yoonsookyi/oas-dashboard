@@ -8,7 +8,7 @@ OAS Admin Lite는 Oracle Analytics Server 2026 운영자를 위한 경량 관리
 
 주요 목적은 다음과 같습니다.
 
-- OAS 서버 리소스와 주요 경로 상태 확인
+- OAS 서버 리소스, 런타임 경로, listener/process 상태 확인
 - OAS 카탈로그 현황 수집
 - 현재 패치 레벨 확인
 - Oracle 제공 OAS 관리 스크립트 실행
@@ -61,7 +61,7 @@ OAS 스크립트 실행처럼 변경 가능성이 있는 작업은 다음 흐름
 
 ### 3.1 Dashboard
 
-전체 운영 상태를 요약해서 보여주는 첫 화면입니다.
+OAS 서버의 런타임 경로, 리소스, listener/process 상태를 시각적으로 요약해서 보여주는 첫 화면입니다.
 
 표시 항목:
 
@@ -76,7 +76,7 @@ OAS 스크립트 실행처럼 변경 가능성이 있는 작업은 다음 흐름
 
 ### 3.2 Resources
 
-서버 리소스와 OAS 운영에 필요한 주요 경로 상태를 조회합니다.
+CPU, Memory, Swap, `/u01` Disk, OAS/OHS listener, OAS/OHS process 상태를 상세 조회합니다.
 
 Linux 서버에서는 다음 항목을 확인합니다.
 

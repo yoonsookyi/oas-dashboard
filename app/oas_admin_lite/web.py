@@ -194,8 +194,8 @@ SCRIPT_GUIDES = [
 ]
 
 PAGE_DESCRIPTIONS = {
-    "dashboard": "OAS Admin Lite의 전체 상태와 최근 작업을 한눈에 확인합니다. 경고 항목을 먼저 보고 필요한 상세 화면으로 이동합니다.",
-    "resources": "서버 리소스, 주요 OAS 경로, Linux 기본 상태를 조회합니다. 이 화면은 조회 전용이며 시스템 설정을 변경하지 않습니다.",
+    "dashboard": "OAS 서버의 런타임 경로, 주요 포트/프로세스, 리소스 상태를 요약해서 보여줍니다. 앱 작업 이력은 Jobs / Audit에서 확인합니다.",
+    "resources": "OAS 서버 운영에 필요한 CPU, Memory, Swap, /u01 Disk, Listener, Process 상태를 상세 조회합니다. 앱 설정값은 Settings에서 확인합니다.",
     "catalog": "OAS REST API를 호출해 카탈로그 object 현황을 수집합니다. Endpoint, 인증 사용자, HTTP 상태와 응답 형식을 함께 확인합니다.",
     "patch": "현재 ORACLE_HOME의 OPatch inventory를 조회해 설치된 패치 레벨을 확인합니다. 이 화면은 조회 전용이며 패치를 적용하지 않습니다.",
     "scripts": "허용된 OAS 관리 스크립트만 Preview 후 실행합니다. import/export 및 diagnostic 작업 결과는 Jobs / Audit에 기록됩니다.",
@@ -255,31 +255,76 @@ def nav(active):
 
 def dashboard_page(ctx, query):
     snap = ctx.resources.snapshot()
-    recent = ctx.store.list(5)
-    checks = "".join(check_row(c) for c in snap.checks)
-    jobs = "".join(job_row(j, compact=True) for j in recent) or '<tr><td colspan="3">작업 이력이 없습니다.</td></tr>'
+    oas_cards = "".join(status_card(check) for check in snap.oas_checks)
+    metric_cards = "".join(metric_card(metric) for metric in snap.metrics)
+    resource_rows = "".join(check_row(c, value_second=False) for c in snap.resource_checks)
     content = """
-<section class="grid two">
-  <div class="panel"><h2>서버 요약</h2>{snapshot}</div>
-  <div class="panel"><h2>최근 작업</h2><table><thead><tr><th>시간</th><th>작업</th><th>결과</th></tr></thead><tbody>{jobs}</tbody></table></div>
+<section class="panel">
+  <div class="panel-head"><h2>OAS 런타임 상태</h2><a class="button secondary" href="/resources">상세 보기</a></div>
+  <div class="status-grid">{oas_cards}</div>
 </section>
-<section class="panel"><h2>주요 점검</h2><table><thead><tr><th>항목</th><th>값</th><th>상태</th><th>상세</th></tr></thead><tbody>{checks}</tbody></table></section>
-""".format(snapshot=snapshot_kv(snap), jobs=jobs, checks=checks)
+<section class="panel">
+  <div class="panel-head"><h2>서버 리소스 요약</h2></div>
+  <div class="metric-grid">{metric_cards}</div>
+</section>
+<section class="panel">
+  <div class="panel-head"><h2>리스너 및 프로세스</h2></div>
+  <table><thead><tr><th>항목</th><th>상태</th><th>값</th><th>상세</th></tr></thead><tbody>{resource_rows}</tbody></table>
+</section>
+""".format(oas_cards=oas_cards, metric_cards=metric_cards, resource_rows=resource_rows)
     return layout(ctx, "Dashboard", "dashboard", content, query)
 
 
 def resources_page(ctx, query):
     snap = ctx.resources.snapshot()
-    rows = "".join(check_row(c, value_second=False) for c in snap.checks)
+    oas_cards = "".join(status_card(check) for check in snap.oas_checks)
+    metric_cards = "".join(metric_card(metric) for metric in snap.metrics)
+    resource_rows = "".join(check_row(c, value_second=False) for c in snap.resource_checks)
     content = """
 <section class="panel">
-  <div class="panel-head"><h2>서버 리소스</h2><a class="button secondary" href="/resources">새로고침</a></div>
+  <div class="panel-head"><h2>서버 식별 정보</h2><a class="button secondary" href="/resources">새로고침</a></div>
   {snapshot}
-  <table><thead><tr><th>항목</th><th>상태</th><th>값</th><th>상세</th></tr></thead><tbody>{rows}</tbody></table>
 </section>
-""".format(snapshot=snapshot_kv(snap), rows=rows)
+<section class="panel">
+  <div class="panel-head"><h2>OAS 경로 상태</h2></div>
+  <div class="status-grid">{oas_cards}</div>
+</section>
+<section class="panel">
+  <div class="panel-head"><h2>리소스 지표</h2></div>
+  <div class="metric-grid">{metric_cards}</div>
+</section>
+<section class="panel">
+  <div class="panel-head"><h2>상세 점검 결과</h2></div>
+  <table><thead><tr><th>항목</th><th>상태</th><th>값</th><th>상세</th></tr></thead><tbody>{resource_rows}</tbody></table>
+</section>
+""".format(snapshot=snapshot_kv(snap), oas_cards=oas_cards, metric_cards=metric_cards, resource_rows=resource_rows)
     return layout(ctx, "Resources", "resources", content, query)
 
+
+def status_card(check):
+    return """
+    <div class="status-card {status}">
+      <div class="status-card-head"><span>{name}</span>{badge}</div>
+      <pre>{value}</pre>
+      <p>{detail}</p>
+    </div>
+    """.format(status=esc(check.status), name=esc(check.name), badge=badge(check.status), value=esc(check.value), detail=esc(check.detail))
+
+
+def metric_card(metric):
+    percent = int(metric.percent or 0)
+    if percent < 0:
+        percent = 0
+    if percent > 100:
+        percent = 100
+    return """
+    <div class="metric-card {status}">
+      <div class="metric-head"><span>{name}</span>{badge}</div>
+      <div class="metric-value"><strong>{value}</strong><span>{unit}</span></div>
+      <div class="meter"><span style="width:{percent}%"></span></div>
+      <div class="metric-foot"><span>{percent}%</span><span>{detail}</span></div>
+    </div>
+    """.format(status=esc(metric.status), name=esc(metric.name), badge=badge(metric.status), value=esc(metric.value), unit=esc(metric.unit), percent=percent, detail=esc(metric.detail))
 
 def catalog_page(ctx, query):
     summary = ctx.catalog.last_summary()

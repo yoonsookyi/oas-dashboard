@@ -8,8 +8,8 @@ OAS Admin Lite는 Oracle Analytics Server 2026 운영자를 위한 경량 온디
 
 ## 주요 기능
 
-- Dashboard: OAS Admin Lite 상태와 최근 작업 요약
-- Resources: 서버 리소스, `/u01`, `ORACLE_HOME`, `DOMAIN_HOME`, `bitools/bin` 상태 확인
+- Dashboard: OAS 서버 런타임 경로, 리소스, 리스너/프로세스 상태 요약
+- Resources: CPU, Memory, Swap, `/u01` Disk, OAS/OHS listener, OAS/OHS process 상세 조회
 - Catalog: OAS REST API 기반 카탈로그 수집 골격
 - Patch: `opatch lsinventory` 기반 현재 패치 레벨 조회
 - Scripts: allowlist 기반 OAS 관리 스크립트 실행

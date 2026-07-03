@@ -412,3 +412,95 @@ select:focus {
   .info-list,
   .script-grid { grid-template-columns: 1fr; }
 }
+.status-grid,
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.status-card,
+.metric-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 13px;
+  min-width: 0;
+}
+.status-card.OK,
+.metric-card.OK { border-color: #bde3cc; }
+.status-card.WARN,
+.metric-card.WARN { border-color: #f2d58b; }
+.status-card.FAILED,
+.metric-card.FAILED { border-color: #f6c2bd; }
+.status-card-head,
+.metric-head,
+.metric-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.status-card-head > span,
+.metric-head > span {
+  font-weight: 780;
+  color: #334155;
+}
+.status-card pre {
+  margin-top: 10px;
+  max-height: 86px;
+  overflow: auto;
+}
+.status-card p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.metric-value {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 12px 0 8px;
+}
+.metric-value strong {
+  font-size: 23px;
+  line-height: 1;
+  letter-spacing: 0;
+}
+.metric-value span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.meter {
+  height: 9px;
+  border-radius: 999px;
+  background: #e8eef5;
+  overflow: hidden;
+}
+.meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--ok);
+}
+.metric-card.WARN .meter span { background: var(--warn); }
+.metric-card.FAILED .meter span { background: var(--fail); }
+.metric-foot {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  align-items: flex-start;
+}
+.metric-foot span:last-child {
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1180px) {
+  .status-grid,
+  .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 620px) {
+  .status-grid,
+  .metric-grid { grid-template-columns: 1fr; }
+}
