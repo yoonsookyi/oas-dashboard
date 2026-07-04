@@ -79,12 +79,12 @@ def make_handler(ctx):
                     script, args, stdin_text = script_request(form)
                     ctx.store.set_json("script_form_state", script_form_state(form))
                     ctx.scripts.preview(script, args, stdin_text)
-                    self._redirect_flash(script_redirect(script), "스크립트 실행 명령어 확인 결과가 생성되었습니다.")
+                    self._redirect_flash(script_redirect(script), "명령어 미리보기를 생성했습니다. OAS 스크립트는 실행하지 않았습니다.")
                 elif parsed.path == "/scripts/run":
                     script, args, stdin_text = script_request(form)
                     ctx.store.set_json("script_form_state", script_form_state(form))
                     ctx.scripts.run(script, args, stdin_text)
-                    self._redirect_flash(script_redirect(script), "스크립트 실행이 완료되었습니다.")
+                    self._redirect_flash(script_redirect(script), "실제 OAS 스크립트 실행이 완료되었습니다.")
                 else:
                     self.send_error(HTTPStatus.NOT_FOUND, "not found")
             except Exception as exc:
@@ -176,13 +176,29 @@ SCRIPT_ACTIONS = [
         "script": "exportarchive.sh",
         "mode": "exportarchive",
         "label": "환경 메타데이터 BAR 내보내기",
-        "method": "exportarchive.sh <service instance key> <export directory> {optional parameters}\n\n필수: service instance key, export directory, encryption password(stdin)\n옵션 예: noconnectionparams, nouserfolders, noconfiguration, nojobs, includedata, includecustommaps, includedaytodaymetadata, nojazn, nodatamodel, nocontentdatasets, advancedoptions=<json path>\n\nOracle 보안 지침상 encryption password는 명령줄 인자로 전달하지 않습니다. OAS Admin Lite는 stdin으로 전달하며 명령 이력에 저장하지 않습니다.",
+        "method": "exportarchive.sh <service instance key> <export directory> {optional parameters}",
+        "purpose": "서비스 인스턴스의 환경 메타데이터를 BAR 파일로 내보내 이관, 백업, 비교 작업에 사용할 수 있게 합니다.",
+        "required": ["Service instance key", "Export directory", "Encryption password(stdin)"],
+        "result": "/u01/oas-admin-lite/backups 하위 export directory에 BAR 내보내기 결과가 생성됩니다. 실행 로그와 exit code는 Jobs / Audit에서 확인합니다.",
+        "cautions": [
+            "Encryption password는 명령줄 인자로 저장하지 않고 stdin으로만 전달합니다.",
+            "선택 옵션은 exportarchive.sh help에 표시된 허용 옵션만 입력합니다.",
+            "실제 실행 버튼을 누르면 OAS 서버의 bitools/bin에서 exportarchive.sh가 실행됩니다.",
+        ],
     },
     {
         "script": "diagnostic_dump.sh",
         "mode": "diagnostic",
         "label": "Oracle Support 진단 번들 수집",
-        "method": "diagnostic_dump.sh <zip file name>\n\nOracle Analytics Server 문서는 진단 번들 수집 시 ZIP 파일명을 지정하도록 안내합니다. 생성된 ZIP 파일은 Oracle Support 또는 Development 조직에서 요청할 때 제공합니다. 실행 결과에 BI Diagnostic Dump 버전, oa_platform/WebLogic 버전, 진단 로그 경로가 표시될 수 있습니다.",
+        "method": "diagnostic_dump.sh <zip file name>",
+        "purpose": "Oracle Support 또는 Development 조직에 제공할 OAS 진단 번들 ZIP을 수집합니다.",
+        "required": ["ZIP file name"],
+        "result": "/u01/oas-admin-lite/bundles 하위에 진단 ZIP이 생성됩니다. stdout/stderr, exit code, 진단 로그 경로는 Jobs / Audit에서 확인합니다.",
+        "cautions": [
+            "진단 번들은 환경 및 보안 설정 정보를 포함할 수 있으므로 공유 대상을 제한합니다.",
+            "실행 시간이 걸릴 수 있고 결과 ZIP 파일 크기가 커질 수 있습니다.",
+            "실제 실행 버튼을 누르면 OAS 서버의 bitools/bin에서 diagnostic_dump.sh가 실행됩니다.",
+        ],
     },
 ]
 
@@ -190,7 +206,7 @@ PAGE_DESCRIPTIONS = {
     "resources": "OAS 서버의 CPU, Memory, Swap, /u01 Disk, Listener, Process 상태를 확인합니다. OAS/OHS 경로 설정값은 Settings에서 확인합니다.",
     "catalog": "OAS REST API 수집 결과로 카탈로그 유형, 소유자, 변경일, 폴더 구조, ACL 리스크를 확인합니다.",
     "patch": "현재 ORACLE_HOME의 OPatch inventory를 조회해 설치된 패치 레벨을 확인합니다. 이 화면은 조회 전용이며 패치를 적용하지 않습니다.",
-    "scripts": "MVP에서는 exportarchive.sh와 diagnostic_dump.sh만 작업 버튼으로 선택합니다. exportarchive는 필요한 값을 입력하고, diagnostic_dump는 ZIP 파일명을 입력한 뒤 명령어 확인 또는 실행합니다.",
+    "scripts": "운영자가 허용된 OAS 스크립트를 단계별로 실행합니다. 미리보기는 명령어 생성만 수행하고, 실제 실행은 서버에서 스크립트를 실행해 Jobs / Audit에 결과를 남깁니다.",
     "jobs": "Catalog 수집, OPatch, OAS 스크립트 실행 이력을 조회합니다. 명령, 결과, 메시지를 audit trail로 확인합니다.",
     "settings": "OAS, OHS, 모니터링 웹앱 설정값을 구분해 조회 전용으로 표시합니다. 값 변경은 app.yaml 또는 환경변수에서 수행합니다.",
 }
@@ -513,42 +529,55 @@ def scripts_page(ctx, query):
     selected = selected_script(query, actions)
     saved_form = script_saved_form(ctx, selected["script"])
     command = script_last_command(state, selected["script"])
-    recent_output = state.get("last_output", "") if command else ""
+    last_job_type = state.get("last_job_type", "")
+    recent_output = state.get("last_output", "") if command and last_job_type == "script_run" else ""
     content = """
 <section class="panel">
-  <div class="panel-head"><h2>작업 선택</h2><span class="muted">{bitools}</span></div>
+  <div class="panel-head script-picker-head">
+    <div><h2>작업 선택</h2><p class="muted">OAS 서버에서 수행할 운영 작업을 선택합니다. 허용 목록에 있는 스크립트만 표시됩니다.</p></div>
+    <span class="muted mono-path">{bitools}</span>
+  </div>
   {picker}
 </section>
-<section class="panel script-run-panel">
-  <div class="panel-head"><h2>{label}</h2><span class="tag">{script}</span></div>
-  <div class="script-run-layout">
-    <div class="command-help"><h3>실행 명령어 방법</h3><pre>{method}</pre></div>
+<div class="script-workbench">
+  <section class="panel script-info-panel">
+    <div class="panel-head"><h2>{label}</h2><span class="tag">{script}</span></div>
+    {brief}
+  </section>
+  <section class="panel script-run-panel">
+    <div class="panel-head"><h2>실행 단계</h2><span class="tag danger-tag">실제 실행 주의</span></div>
     <form method="post" class="script-exec-form">
       <input type="hidden" name="script" value="{script}">
       <input type="hidden" name="arg_mode" value="{mode}">
-      <div class="script-form-grid">{fields}</div>
-      <div class="actions"><button formaction="/scripts/preview" type="submit" class="secondary">명령어 확인</button></div>
-      <p class="muted form-help full">입력한 값으로 실행될 명령어를 아래에 표시합니다. 이 단계에서는 스크립트를 실행하지 않습니다.</p>
-      {command_box}
-      <button formaction="/scripts/run" type="submit" class="danger">실행</button>
-      <p class="muted form-help full">현재 입력값으로 실제 OAS 스크립트를 실행하고 stdout/stderr, exit code, 로그 경로를 Jobs / Audit에 저장합니다.</p>
-      {recent_result}
+      <section class="script-step input-step">
+        <div class="script-step-head"><span class="step-number">1</span><div><h3>입력</h3><p>필수 값과 선택 옵션을 입력합니다. 이 단계에서는 서버 명령이 실행되지 않습니다.</p></div></div>
+        <div class="script-form-grid">{fields}</div>
+      </section>
+      <section class="script-step preview-step">
+        <div class="script-step-head"><span class="step-number">2</span><div><h3>명령어 미리보기</h3><p>입력값으로 생성될 명령어만 확인합니다. OAS 스크립트는 실행하지 않습니다.</p></div></div>
+        <div class="actions"><button formaction="/scripts/preview" type="submit" class="secondary">미리보기 생성 - 실행 안 함</button></div>
+        {command_box}
+      </section>
+      <section class="script-step execute-step">
+        <div class="script-step-head"><span class="step-number">3</span><div><h3>실제 실행</h3><p>현재 입력값으로 OAS 서버에서 스크립트를 실행하고 stdout/stderr, exit code, 로그 경로를 Jobs / Audit에 저장합니다.</p></div></div>
+        <button formaction="/scripts/run" type="submit" class="danger">실제 실행 - OAS 서버에서 스크립트 실행</button>
+        {recent_result}
+      </section>
     </form>
-  </div>
-</section>
+  </section>
+</div>
 """.format(
         bitools=esc(state.get("bitools_bin", "")),
         picker=script_picker(actions, selected["script"]),
         label=esc(selected["label"]),
         script=esc(selected["script"]),
-        method=esc(selected["method"]),
         mode=esc(selected["mode"]),
+        brief=script_brief(selected),
         fields=script_fields(selected, saved_form),
-        command_box=script_command_box(command),
+        command_box=script_command_box(command, last_job_type),
         recent_result=script_recent_result(recent_output),
     )
     return layout(ctx, "Scripts", "scripts", content, query)
-
 
 def script_actions(state):
     allowed = set(state.get("allowed") or [])
@@ -588,15 +617,44 @@ def script_last_command(state, script):
     return ""
 
 
-def script_command_box(command):
-    return '<label class="full command-preview">실행될 명령어<textarea readonly placeholder="명령어 확인을 누르면 여기에 표시됩니다.">{0}</textarea><span class="field-help">표시된 명령어를 확인한 뒤 실행 버튼을 누르면 현재 입력값으로 스크립트를 실행합니다.</span></label>'.format(esc(command))
+def script_brief(action):
+    return """
+    <div class="script-brief">
+      <section class="script-info-block"><h3>작업 목적</h3><p>{purpose}</p></section>
+      <section class="script-info-block"><h3>필수 입력</h3>{required}</section>
+      <section class="script-info-block"><h3>결과</h3><p>{result}</p></section>
+      <section class="script-info-block caution"><h3>주의사항</h3>{cautions}</section>
+      <section class="script-info-block"><h3>기본 명령 형식</h3><pre>{method}</pre></section>
+    </div>
+    """.format(
+        purpose=esc(action.get("purpose", "")),
+        required=script_list(action.get("required") or []),
+        result=esc(action.get("result", "")),
+        cautions=script_list(action.get("cautions") or []),
+        method=esc(action.get("method", "")),
+    )
+
+
+def script_list(items):
+    if not items:
+        return '<p class="muted">-</p>'
+    return '<ul>{0}</ul>'.format("".join('<li>{0}</li>'.format(esc(item)) for item in items))
+
+
+def script_command_box(command, last_job_type=""):
+    if last_job_type == "script_run":
+        help_text = "최근 실제 실행에 사용한 명령어입니다. 입력값을 바꾸면 2단계에서 다시 미리보기를 생성해 확인하세요."
+    elif command:
+        help_text = "미리보기로 생성된 명령어입니다. 이 단계에서는 서버에서 실행하지 않았습니다."
+    else:
+        help_text = "2단계의 미리보기 버튼을 누르면 생성될 명령어가 여기에 표시됩니다."
+    return '<label class="full command-preview">생성된 명령어<textarea readonly placeholder="미리보기 생성 - 실행 안 함 버튼을 누르면 여기에 표시됩니다.">{0}</textarea><span class="field-help">{1}</span></label>'.format(esc(command), esc(help_text))
 
 
 def script_recent_result(output):
     if not output:
-        return ""
-    return '<div class="result script-result"><h3>최근 결과</h3><pre>{0}</pre></div>'.format(esc(output))
-
+        return '<div class="result script-result empty"><h3>최근 실제 실행 결과</h3><p class="muted">아직 실제 실행 결과가 없습니다. 3단계 버튼을 누른 뒤 stdout/stderr와 exit code를 확인하세요.</p></div>'
+    return '<div class="result script-result"><h3>최근 실제 실행 결과</h3><pre>{0}</pre></div>'.format(esc(output))
 
 def script_picker(actions, selected):
     buttons = []
@@ -613,12 +671,12 @@ def script_fields(action, values=None):
         <label>Service instance key<input name="service_instance" value="{service_instance}" placeholder="ssi"></label>
         <label>Export directory<input name="export_dir" value="{export_dir}" placeholder="/u01/oas-admin-lite/backups/export"></label>
         <label class="full">Optional parameters<input name="export_options" value="{export_options}" placeholder="noconnectionparams nouserfolders includedata advancedoptions=/path/options.json"></label>
-        <label class="full">Encryption password(stdin)<input type="password" name="stdin_text" autocomplete="new-password" placeholder="명령어 이력에 남기지 않고 stdin으로 전달"></label>
+        <label class="full">Encryption password(stdin, 명령어에 저장 안 함)<input type="password" name="stdin_text" autocomplete="new-password" placeholder="실제 실행 시 stdin으로만 전달됩니다"></label>
         """.format(service_instance=esc(values.get("service_instance", "")), export_dir=esc(values.get("export_dir", "")), export_options=esc(values.get("export_options", "")))
     if action["mode"] == "diagnostic":
         return """
         <label class="full">ZIP file name<input name="diagnostic_zip" value="{diagnostic_zip}" placeholder="/u01/oas-admin-lite/bundles/oas-diagnostic.zip"></label>
-        <p class="muted full">Oracle OAS 문서의 diagnostic_dump.sh &lt;zip file name&gt; 형식을 따릅니다. 진단 번들 결과 경로는 /u01/oas-admin-lite/bundles를 기준으로 하며, 생성된 ZIP은 Oracle Support 요청 시 제공합니다.</p>
+        <p class="muted full">ZIP 파일명은 /u01/oas-admin-lite/bundles 기준으로 입력합니다. 실제 실행 시 diagnostic_dump.sh &lt;zip file name&gt; 형식으로 서버에서 실행됩니다.</p>
         """.format(diagnostic_zip=esc(values.get("diagnostic_zip", "")))
     return '<label class="full">Arguments<input name="args" placeholder="help 출력에서 확인한 옵션 입력"></label>'
 

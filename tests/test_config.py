@@ -5,10 +5,10 @@ import unittest
 from pathlib import Path
 
 from app.oas_admin_lite.catalog import CatalogService, analyze_acl, build_dashboard, extract_catalog_items, infer_counts, normalize_items
-from app.oas_admin_lite.config import load_config, parse_simple_yaml
+from app.oas_admin_lite.config import AppConfig, load_config, parse_simple_yaml
 from app.oas_admin_lite.scripts_runner import ScriptService, allowed_scripts
 from app.oas_admin_lite.storage import JobStore
-from app.oas_admin_lite.web import script_form_state, script_request
+from app.oas_admin_lite.web import AppContext, script_form_state, script_request, scripts_page
 
 
 class ConfigTests(unittest.TestCase):
@@ -86,7 +86,32 @@ class ConfigTests(unittest.TestCase):
             self.assertIn("exportarchive.sh", state["last_command"])
             self.assertIn("ssi", state["last_command"])
             self.assertNotIn("secret-password", state["last_command"])
-            self.assertIn("\uc2a4\ud06c\ub9bd\ud2b8\ub294 \uc2e4\ud589\ud558\uc9c0 \uc54a\uc558\uc2b5\ub2c8\ub2e4", state["last_output"])
+            self.assertEqual(state["last_job_type"], "script_command_check")
+            self.assertIn("명령어 미리보기만 생성했습니다", state["last_output"])
+
+    def test_scripts_page_separates_preview_from_actual_run(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            cfg = AppConfig()
+            cfg.paths.root = tmp
+            cfg.paths.data_dir = os.path.join(tmp, "data")
+            cfg.paths.log_dir = os.path.join(tmp, "logs")
+            cfg.paths.backup_dir = os.path.join(tmp, "backups")
+            cfg.paths.bundle_dir = os.path.join(tmp, "bundles")
+            cfg.paths.package_dir = os.path.join(tmp, "packages")
+            cfg.oas.bitools_bin = "/u01/data/domains/bi/bitools/bin"
+            ctx = AppContext(cfg)
+            ctx.scripts.preview("diagnostic_dump.sh", "/u01/oas-admin-lite/bundles/test.zip")
+            html = scripts_page(ctx, {"script": ["diagnostic_dump.sh"]})
+
+            self.assertIn("작업 목적", html)
+            self.assertIn("필수 입력", html)
+            self.assertIn("명령어 미리보기", html)
+            self.assertIn("미리보기 생성 - 실행 안 함", html)
+            self.assertIn("실제 실행 - OAS 서버에서 스크립트 실행", html)
+            self.assertIn("최근 실제 실행 결과", html)
+            self.assertIn("미리보기로 생성된 명령어입니다", html)
+            self.assertNotIn("명령어 미리보기만 생성했습니다", html)
+
 
     def test_catalog_dashboard_summary(self):
         items = normalize_items([
