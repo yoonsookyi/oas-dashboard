@@ -78,7 +78,7 @@ def make_handler(ctx):
                 elif parsed.path == "/scripts/preview":
                     script, args, stdin_text = script_request(form)
                     ctx.scripts.preview(script, args, stdin_text)
-                    self._redirect_flash(script_redirect(script), "스크립트 실행 명령 Preview가 생성되었습니다.")
+                    self._redirect_flash(script_redirect(script), "스크립트 실행 명령어 확인 결과가 생성되었습니다.")
                 elif parsed.path == "/scripts/run":
                     script, args, stdin_text = script_request(form)
                     if first(form, "confirm") != "RUN":
@@ -176,7 +176,7 @@ SCRIPT_ACTIONS = [
         "script": "exportarchive.sh",
         "mode": "exportarchive",
         "label": "환경 메타데이터 BAR 내보내기",
-        "method": "exportarchive.sh <service instance key> <export directory> {optional parameters}\n\nMandatory: service instance key, export directory, encryption password(stdin)\nOptional examples: noconnectionparams, nouserfolders, noconfiguration, nojobs, includedata, includecustommaps, includedaytodaymetadata, nojazn, nodatamodel, nocontentdatasets, advancedoptions=<json path>\n\nOracle Security guideline: encryption password is not passed on the command line. OAS Admin Lite sends it through stdin and does not store it in the command history.",
+        "method": "exportarchive.sh <service instance key> <export directory> {optional parameters}\n\n필수: service instance key, export directory, encryption password(stdin)\n옵션 예: noconnectionparams, nouserfolders, noconfiguration, nojobs, includedata, includecustommaps, includedaytodaymetadata, nojazn, nodatamodel, nocontentdatasets, advancedoptions=<json path>\n\nOracle 보안 지침상 encryption password는 명령줄 인자로 전달하지 않습니다. OAS Admin Lite는 stdin으로 전달하며 명령 이력에 저장하지 않습니다.",
     },
     {
         "script": "diagnostic_dump.sh",
@@ -190,9 +190,9 @@ PAGE_DESCRIPTIONS = {
     "resources": "OAS 서버의 CPU, Memory, Swap, /u01 Disk, Listener, Process 상태와 주요 런타임 경로를 확인합니다. 앱 설정값은 Settings에서 확인합니다.",
     "catalog": "OAS REST API 수집 결과로 카탈로그 유형, 소유자, 변경일, 폴더 구조, ACL 리스크를 확인합니다.",
     "patch": "현재 ORACLE_HOME의 OPatch inventory를 조회해 설치된 패치 레벨을 확인합니다. 이 화면은 조회 전용이며 패치를 적용하지 않습니다.",
-    "scripts": "OAS service instance 관리 스크립트를 작업 버튼으로 선택하고, 실행 방법 확인 후 매개변수를 입력해 Preview 또는 실행합니다.",
+    "scripts": "MVP에서는 exportarchive.sh와 diagnostic_dump.sh만 작업 버튼으로 선택하고, 실행 방법 확인 후 매개변수를 입력해 명령어 확인 또는 실행합니다.",
     "jobs": "Catalog 수집, OPatch, OAS 스크립트 실행 이력을 조회합니다. 명령, 결과, 메시지를 audit trail로 확인합니다.",
-    "settings": "현재 앱 설정과 OAS 경로, Catalog REST 설정을 표시합니다. 1차 버전에서는 설정 파일을 직접 수정하는 방식입니다.",
+    "settings": "현재 앱 설정, OAS 경로, Catalog REST 연결 설정을 조회 전용으로 표시합니다. 값 변경은 app.yaml 또는 환경변수에서 수행합니다.",
 }
 
 
@@ -643,7 +643,7 @@ def settings_page(ctx, query):
         ("Catalog Password", "configured" if getattr(cfg.oas, "catalog_password", "") else ""),
     ]
     rows = "".join("<dt>{0}</dt><dd>{1}</dd>".format(esc(k), esc(v)) for k, v in values)
-    content = '<section class="panel"><h2>설정</h2><dl class="kv">{0}</dl><p class="muted">1차 버전에서는 화면에서 설정을 수정하지 않고 app.yaml을 읽어 표시합니다.</p></section>'.format(rows)
+    content = '<section class="panel"><h2>설정</h2><dl class="kv">{0}</dl><p class="muted">이 화면에서는 설정을 수정하지 않고 app.yaml 및 환경변수 기준 값을 조회 전용으로 표시합니다.</p></section>'.format(rows)
     return layout(ctx, "Settings", "settings", content, query)
 
 

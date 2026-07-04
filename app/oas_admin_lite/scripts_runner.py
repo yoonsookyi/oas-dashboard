@@ -47,8 +47,8 @@ class ScriptService(object):
 
     def preview(self, script, raw_args, stdin_text=""):
         command = self._command(script, raw_args)
-        output = "Preview only. stdin supplied: {0}".format("yes" if stdin_text else "no")
-        self._record("script_preview", command, "SUCCESS", 0, output, time.time(), time.time(), "")
+        output = "명령어 확인 전용입니다. stdin 입력: {0}".format("있음" if stdin_text else "없음")
+        self._record("script_command_check", command, "SUCCESS", 0, output, time.time(), time.time(), "")
 
     def run(self, script, raw_args, stdin_text=""):
         command = self._command(script, raw_args)

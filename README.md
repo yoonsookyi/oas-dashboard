@@ -411,14 +411,14 @@ http://127.0.0.1:18080
 - 6개 화면 구성
 - SQLite Jobs / Audit 저장
 - OPatch inventory 조회
-- OAS script allowlist 실행 골격
+- exportarchive/diagnostic_dump allowlist 실행 및 명령어 확인
 - 온디맨드 운영 스크립트
 - Git clone 및 release package 배포 흐름
 
 추가 구체화 필요:
 
 - 고객 OAS 환경의 실제 Catalog REST endpoint, page/limit 정책, ACL 조회 범위 튜닝
-- 스크립트별 전용 입력 UI
+- diagnostic_dump.sh 옵션 입력 UI 세분화
 - Catalog Detail CSV/JSON 결과 다운로드
 - 패치 전후 자동 진단/백업 절차 강화
 

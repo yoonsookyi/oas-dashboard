@@ -55,7 +55,7 @@ class ConfigTests(unittest.TestCase):
             self.assertIn("exportarchive.sh", state["last_command"])
             self.assertIn("ssi", state["last_command"])
             self.assertNotIn("secret-password", state["last_command"])
-            self.assertIn("stdin supplied: yes", state["last_output"])
+            self.assertIn("stdin 입력: 있음", state["last_output"])
 
     def test_catalog_dashboard_summary(self):
         items = normalize_items([
