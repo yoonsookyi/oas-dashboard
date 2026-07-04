@@ -192,7 +192,7 @@ PAGE_DESCRIPTIONS = {
     "patch": "현재 ORACLE_HOME의 OPatch inventory를 조회해 설치된 패치 레벨을 확인합니다. 이 화면은 조회 전용이며 패치를 적용하지 않습니다.",
     "scripts": "MVP에서는 exportarchive.sh와 diagnostic_dump.sh만 작업 버튼으로 선택합니다. exportarchive는 필요한 값을 입력하고, diagnostic_dump는 ZIP 파일명을 입력한 뒤 명령어 확인 또는 실행합니다.",
     "jobs": "Catalog 수집, OPatch, OAS 스크립트 실행 이력을 조회합니다. 명령, 결과, 메시지를 audit trail로 확인합니다.",
-    "settings": "현재 앱 설정, OAS 경로, Catalog REST 연결 설정을 조회 전용으로 표시합니다. 값 변경은 app.yaml 또는 환경변수에서 수행합니다.",
+    "settings": "모니터링 웹앱, OAS, OHS 설정값을 구분해 조회 전용으로 표시합니다. 값 변경은 app.yaml 또는 환경변수에서 수행합니다.",
 }
 
 
@@ -674,7 +674,7 @@ def jobs_page(ctx, query):
 
 def settings_page(ctx, query):
     cfg = ctx.cfg
-    values = [
+    app_values = [
         ("Listen", cfg.server.listen),
         ("Root", cfg.paths.root),
         ("Data", cfg.paths.data_dir),
@@ -682,6 +682,12 @@ def settings_page(ctx, query):
         ("Backups", cfg.paths.backup_dir),
         ("Bundles", cfg.paths.bundle_dir),
         ("Packages", cfg.paths.package_dir),
+        ("Allowed Scripts", ", ".join(cfg.scripts.allowed)),
+        ("Patch Directories", ", ".join(cfg.patch.allowed_patch_dirs)),
+        ("Auth User", cfg.security.username),
+        ("Auth Password", "configured" if cfg.security.password_sha256 else ""),
+    ]
+    oas_values = [
         ("ORACLE_HOME", cfg.oas.oracle_home),
         ("DOMAIN_HOME", cfg.oas.domain_home),
         ("bitools/bin", cfg.oas.bitools_bin),
@@ -692,9 +698,44 @@ def settings_page(ctx, query):
         ("Catalog Username", getattr(cfg.oas, "catalog_username", "")),
         ("Catalog Password", "configured" if getattr(cfg.oas, "catalog_password", "") else ""),
     ]
-    rows = "".join("<dt>{0}</dt><dd>{1}</dd>".format(esc(k), esc(v)) for k, v in values)
-    content = '<section class="panel"><h2>설정</h2><dl class="kv">{0}</dl><p class="muted">이 화면에서는 설정을 수정하지 않고 app.yaml 및 환경변수 기준 값을 조회 전용으로 표시합니다.</p></section>'.format(rows)
+    ohs = getattr(cfg, "ohs", None)
+    ohs_values = [
+        ("OHS ORACLE_HOME", getattr(ohs, "oracle_home", "")),
+        ("OHS DOMAIN_HOME", getattr(ohs, "domain_home", "")),
+        ("Instance", getattr(ohs, "instance_name", "")),
+        ("HTTP Port", getattr(ohs, "http_port", "")),
+        ("HTTPS Port", getattr(ohs, "https_port", "")),
+    ]
+    content = """
+<div class="settings-sections">
+  {app_group}
+  {oas_group}
+  {ohs_group}
+</div>
+<section class="panel settings-note">
+  <h2>설정 변경 위치</h2>
+  <p class="muted">이 화면에서는 값을 수정하지 않습니다. 배포 서버의 /u01/oas-admin-lite/app/config/app.yaml 또는 실행 환경변수에서 변경한 뒤 앱을 재시작하세요.</p>
+</section>
+""".format(
+        app_group=settings_group("WEB APP", "모니터링 웹앱", "앱 실행 주소, 데이터 저장소, 로그, 백업, 패키지, 작업 허용 정책입니다. OAS 서버 상태가 아니라 oas-admin-lite 운영 값입니다.", app_values, "webapp"),
+        oas_group=settings_group("OAS", "Oracle Analytics Server", "OAS 도메인, Oracle Home, bitools, Analytics/Catalog REST 연결 값입니다. Catalog 수집과 스크립트 실행에서 사용합니다.", oas_values, "oas"),
+        ohs_group=settings_group("OHS", "Oracle HTTP Server", "OHS 홈, 도메인, 인스턴스, HTTP/HTTPS 포트 설정입니다. Listener 감지 결과와 함께 확인합니다.", ohs_values, "ohs"),
+    )
     return layout(ctx, "Settings", "settings", content, query)
+
+
+def settings_group(kicker, title, description, values, tone):
+    rows = "".join("<dt>{0}</dt><dd>{1}</dd>".format(esc(k), esc(v)) for k, v in values)
+    return """
+<section class="panel settings-group {tone}">
+  <div class="settings-heading">
+    <span class="settings-kicker">{kicker}</span>
+    <h2>{title}</h2>
+  </div>
+  <p class="muted settings-copy">{description}</p>
+  <dl class="kv settings-kv">{rows}</dl>
+</section>
+""".format(tone=esc(tone), kicker=esc(kicker), title=esc(title), description=esc(description), rows=rows)
 
 
 def snapshot_kv(snap):

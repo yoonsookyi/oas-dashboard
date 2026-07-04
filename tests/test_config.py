@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from app.oas_admin_lite.catalog import CatalogService, analyze_acl, build_dashboard, infer_counts, normalize_items
+from app.oas_admin_lite.catalog import CatalogService, analyze_acl, build_dashboard, extract_catalog_items, infer_counts, normalize_items
 from app.oas_admin_lite.config import load_config, parse_simple_yaml
 from app.oas_admin_lite.scripts_runner import ScriptService, allowed_scripts
 from app.oas_admin_lite.storage import JobStore
@@ -28,6 +28,8 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(cfg.paths.root, ".local/oas-admin-lite")
         self.assertEqual(cfg.scripts.allowed, ["diagnostic_dump.sh", "exportarchive.sh"])
         self.assertEqual(cfg.oas.catalog_api_path, "/mock/catalog")
+        self.assertEqual(cfg.ohs.domain_home, ".local/mock/ohs_domain")
+        self.assertEqual(cfg.ohs.http_port, "7777")
 
     def test_importarchive_is_blocked(self):
         cfg = load_config("configs/app.local.yaml")
@@ -101,6 +103,14 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(summary["owners"][0]["owner"], "finance_ops")
         self.assertEqual(summary["acl_summary"]["risk_total"], 2)
 
+
+
+    def test_type_endpoint_items_can_use_type_hint(self):
+        payload = {"items": [{"id": "dataset-1", "name": "Sales Dataset", "owner": "bi_admin", "lastModified": "2026-07-04T08:00:00Z"}]}
+        items = normalize_items(extract_catalog_items(payload, type_hint="datasets"), type_hint="datasets")
+        self.assertEqual(len(items), 1)
+        self.assertEqual(items[0]["type"], "datasets")
+        self.assertEqual(items[0]["name"], "Sales Dataset")
 
     def test_catalog_type_only_scan_has_empty_message(self):
         cfg = load_config("configs/app.local.yaml")

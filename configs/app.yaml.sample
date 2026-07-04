@@ -20,6 +20,13 @@ oas:
   catalog_username: ""
   catalog_password: ""
 
+ohs:
+  oracle_home: "/u01/app/Oracle/Middleware/ohs_14.1.2"
+  domain_home: "/u01/data/domains/ohs_domain"
+  instance_name: "ohs1"
+  http_port: "7777"
+  https_port: ""
+
 patch:
   allowed_patch_dirs:
     - "/u01/oas-admin-lite/packages/patches"

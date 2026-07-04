@@ -571,6 +571,49 @@ textarea:focus {
   .filter-grid { grid-template-columns: 1fr; }
   .type-row { grid-template-columns: 110px minmax(100px, 1fr) 42px; }
 }
+.settings-sections {
+  display: grid;
+  gap: 16px;
+  max-width: var(--content-max);
+  margin: 0 auto;
+}
+.settings-group {
+  border-left: 4px solid var(--line-strong);
+}
+.settings-sections > .panel {
+  width: 100%;
+  margin: 0;
+}
+.settings-group.webapp { border-left-color: var(--teal); }
+.settings-group.oas { border-left-color: var(--blue); }
+.settings-group.ohs { border-left-color: var(--amber); }
+.settings-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.settings-heading h2 { margin-bottom: 0; }
+.settings-kicker {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--surface-alt);
+  color: #334155;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0;
+}
+.settings-copy { max-width: 980px; }
+.settings-kv {
+  margin-top: 14px;
+  grid-template-columns: minmax(160px, 0.28fr) minmax(0, 1fr);
+}
+.settings-kv dd { overflow-wrap: anywhere; }
+.settings-note { margin-top: 16px; }
+
 .script-picker {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -744,6 +787,14 @@ textarea:focus {
     flex-basis: 100%;
     width: fit-content;
   }
+  .settings-sections > .panel {
+    width: 100%;
+  }
+  .settings-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .settings-kv { grid-template-columns: 1fr; }
   .status-card-head .badge,
   .metric-head .badge {
     flex-basis: 100%;

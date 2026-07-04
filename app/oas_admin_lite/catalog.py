@@ -159,7 +159,7 @@ class CatalogService(object):
             url = self._catalog_type_endpoint(type_name, page)
             try:
                 parsed, meta = self._request_json(url)
-                page_items = normalize_items(extract_catalog_items(parsed), type_hint=type_name)
+                page_items = normalize_items(extract_catalog_items(parsed, type_hint=type_name), type_hint=type_name)
                 items.extend(page_items)
                 headers = meta.get("headers", {})
                 next_page = header_value(headers, "oa-next-page")
@@ -380,26 +380,28 @@ def is_type_info(item):
     return bool(item.get("type") and not has_item_field)
 
 
-def extract_catalog_items(value):
+def extract_catalog_items(value, type_hint=""):
     items = []
-    visit_items(value, items)
+    visit_items(value, items, type_hint)
     return items
 
 
-def visit_items(value, items):
+def visit_items(value, items, type_hint=""):
     if isinstance(value, dict):
-        if not is_type_info(value) and looks_like_catalog_item(value):
+        if not is_type_info(value) and looks_like_catalog_item(value, type_hint):
             items.append(value)
             return
         for item in value.values():
-            visit_items(item, items)
+            visit_items(item, items, type_hint)
     elif isinstance(value, list):
         for item in value:
-            visit_items(item, items)
+            visit_items(item, items, type_hint)
 
 
-def looks_like_catalog_item(value):
-    return bool(first_value(value, TYPE_KEYS) and (first_value(value, ID_KEYS) or first_value(value, NAME_KEYS) or first_value(value, OWNER_KEYS) or first_value(value, LAST_MODIFIED_KEYS)))
+def looks_like_catalog_item(value, type_hint=""):
+    has_type = bool(first_value(value, TYPE_KEYS) or type_hint)
+    has_identity = bool(first_value(value, ID_KEYS) or first_value(value, NAME_KEYS) or first_value(value, OWNER_KEYS) or first_value(value, LAST_MODIFIED_KEYS))
+    return bool(has_type and has_identity)
 
 
 def normalize_items(values, type_hint=""):

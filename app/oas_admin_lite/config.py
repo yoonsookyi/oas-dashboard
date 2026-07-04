@@ -30,6 +30,15 @@ class OASConfig(object):
         self.catalog_password = ""
 
 
+class OHSConfig(object):
+    def __init__(self):
+        self.oracle_home = "/u01/app/Oracle/Middleware/ohs_14.1.2"
+        self.domain_home = "/u01/data/domains/ohs_domain"
+        self.instance_name = "ohs1"
+        self.http_port = "7777"
+        self.https_port = ""
+
+
 class PatchConfig(object):
     def __init__(self):
         self.allowed_patch_dirs = [
@@ -57,6 +66,7 @@ class AppConfig(object):
         self.server = ServerConfig()
         self.paths = PathsConfig()
         self.oas = OASConfig()
+        self.ohs = OHSConfig()
         self.patch = PatchConfig()
         self.scripts = ScriptsConfig()
         self.security = SecurityConfig()
