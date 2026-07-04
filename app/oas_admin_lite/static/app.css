@@ -606,6 +606,14 @@ select:focus {
 .script-exec-form .full {
   grid-column: 1 / -1;
 }
+.field-help,
+.form-help {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+.form-help { margin: -4px 0 4px; }
 .script-run-panel .result {
   margin-top: 18px;
 }

@@ -182,7 +182,7 @@ SCRIPT_ACTIONS = [
         "script": "diagnostic_dump.sh",
         "mode": "diagnostic",
         "label": "Oracle Support 진단 번들 수집",
-        "method": "diagnostic_dump.sh\n\n서버 실행 결과 기준으로 별도 출력 파일명을 지정하지 않습니다. 실행 출력에 BI Diagnostic Dump 버전, oa_platform/WebLogic 버전, exp_jazn-data.xml 덤프 경로, dumpsecuritystores.log 경로가 표시됩니다. 표시된 경로의 파일을 Oracle Support 요청 자료로 사용합니다.",
+        "method": "diagnostic_dump.sh <zip file name>\n\nOracle Analytics Server 문서는 진단 번들 수집 시 ZIP 파일명을 지정하도록 안내합니다. 생성된 ZIP 파일은 Oracle Support 또는 Development 조직에서 요청할 때 제공합니다. 실행 결과에 BI Diagnostic Dump 버전, oa_platform/WebLogic 버전, 진단 로그 경로가 표시될 수 있습니다.",
     },
 ]
 
@@ -190,7 +190,7 @@ PAGE_DESCRIPTIONS = {
     "resources": "OAS 서버의 CPU, Memory, Swap, /u01 Disk, Listener, Process 상태와 주요 런타임 경로를 확인합니다. 앱 설정값은 Settings에서 확인합니다.",
     "catalog": "OAS REST API 수집 결과로 카탈로그 유형, 소유자, 변경일, 폴더 구조, ACL 리스크를 확인합니다.",
     "patch": "현재 ORACLE_HOME의 OPatch inventory를 조회해 설치된 패치 레벨을 확인합니다. 이 화면은 조회 전용이며 패치를 적용하지 않습니다.",
-    "scripts": "MVP에서는 exportarchive.sh와 diagnostic_dump.sh만 작업 버튼으로 선택합니다. exportarchive는 필요한 값을 입력하고, diagnostic_dump는 별도 인자 없이 명령어 확인 또는 실행합니다.",
+    "scripts": "MVP에서는 exportarchive.sh와 diagnostic_dump.sh만 작업 버튼으로 선택합니다. exportarchive는 필요한 값을 입력하고, diagnostic_dump는 ZIP 파일명을 입력한 뒤 명령어 확인 또는 실행합니다.",
     "jobs": "Catalog 수집, OPatch, OAS 스크립트 실행 이력을 조회합니다. 명령, 결과, 메시지를 audit trail로 확인합니다.",
     "settings": "현재 앱 설정, OAS 경로, Catalog REST 연결 설정을 조회 전용으로 표시합니다. 값 변경은 app.yaml 또는 환경변수에서 수행합니다.",
 }
@@ -532,8 +532,10 @@ def scripts_page(ctx, query):
       <input type="hidden" name="arg_mode" value="{mode}">
       <div class="script-form-grid">{fields}</div>
       <div class="actions"><button formaction="/scripts/preview" type="submit" class="secondary">명령어 확인</button></div>
-      <label class="full">실행 확인<input name="confirm" placeholder="RUN"></label>
+      <p class="muted form-help full">실제 실행하지 않고 생성될 명령어와 stdin 사용 여부만 Jobs / Audit에 기록합니다.</p>
+      <label class="full">실행 확인<input name="confirm" placeholder="RUN"><span class="field-help">실제 실행하려면 RUN을 대문자로 입력합니다.</span></label>
       <button formaction="/scripts/run" type="submit" class="danger">실행</button>
+      <p class="muted form-help full">RUN 확인 후 실제 OAS 스크립트를 실행하고 stdout/stderr, exit code, 로그 경로를 Jobs / Audit에 저장합니다.</p>
     </form>
   </div>
   {result}
@@ -581,7 +583,10 @@ def script_fields(action):
         <label class="full">Encryption password(stdin)<input type="password" name="stdin_text" autocomplete="new-password" placeholder="명령어 이력에 남기지 않고 stdin으로 전달"></label>
         """
     if action["mode"] == "diagnostic":
-        return '<p class="muted full">diagnostic_dump.sh는 출력 파일명 매개변수를 입력하지 않습니다. 실행 결과에 표시된 exp_jazn-data.xml 및 dumpsecuritystores.log 경로를 확인하세요.</p>'
+        return """
+        <label class="full">ZIP file name<input name="diagnostic_zip" placeholder="/u01/oas-admin-lite/bundles/oas-diagnostic.zip"></label>
+        <p class="muted full">Oracle OAS 문서의 diagnostic_dump.sh &lt;zip file name&gt; 형식을 따릅니다. 진단 번들 결과 경로는 /u01/oas-admin-lite/bundles를 기준으로 하며, 생성된 ZIP은 Oracle Support 요청 시 제공합니다.</p>
+        """
     return '<label class="full">Arguments<input name="args" placeholder="help 출력에서 확인한 옵션 입력"></label>'
 
 
@@ -595,7 +600,8 @@ def script_request(form):
         stdin_text = required(form, "stdin_text", "Encryption password(stdin)")
         raw_args = join_args([service_instance, export_dir], first(form, "export_options"))
     elif mode == "diagnostic":
-        raw_args = ""
+        zip_name = required(form, "diagnostic_zip", "ZIP file name")
+        raw_args = join_args([zip_name])
     else:
         raw_args = first(form, "args")
     return script, raw_args, stdin_text

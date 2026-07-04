@@ -364,10 +364,10 @@ patch:
 
 ## Scripts 화면 안내
 
-Scripts 화면은 MVP 기준으로 `exportarchive.sh`와 `diagnostic_dump.sh`만 실행합니다. 작업 버튼을 선택하면 실행 명령어 방법과 작업별 입력 영역이 표시됩니다. 스크립트 기준은 Oracle Analytics Server 공식 문서 [About the Scripts for Managing Service Instances](https://docs.oracle.com/en/middleware/bi/analytics-server/administer-oas/scripts-managing-service-instances.html)를 참고합니다.
+Scripts 화면은 MVP 기준으로 `exportarchive.sh`와 `diagnostic_dump.sh`만 실행합니다. 작업 버튼을 선택하면 실행 명령어 방법과 작업별 입력 영역이 표시됩니다. 스크립트 기준은 Oracle Analytics Server 공식 문서 [About the Scripts for Managing Service Instances](https://docs.oracle.com/en/middleware/bi/analytics-server/administer-oas/scripts-managing-service-instances.html)를 참고하고, diagnostic bundle 수집은 [Collect Diagnostic Bundles](https://docs.oracle.com/en/middleware/bi/analytics-server/administer-oas/collect-diagnostic-bundles.html)를 기준으로 합니다.
 
-- `diagnostic_dump.sh`: 장애 분석용 진단 dump 생성. 별도 출력 파일명을 입력하지 않고, 실행 결과의 `bilogs/dumpsecuritystores` 경로를 확인합니다.
-- `exportarchive.sh`: Catalog/security/model 산출물을 BAR archive로 export
+- `diagnostic_dump.sh`: Oracle Support 요청 시 제공할 진단 ZIP 번들 생성. `diagnostic_dump.sh <zip file name>` 형식으로 ZIP 파일명을 입력하며, 결과 경로는 `/u01/oas-admin-lite/bundles`입니다.
+- `exportarchive.sh`: Catalog/security/model 산출물을 BAR archive로 export. 결과 경로는 `/u01/oas-admin-lite/backups`입니다.
 
 실행 전 `명령어 확인`으로 실제 명령을 확인하고, 실제 실행 시 확인 입력란에 `RUN`을 입력합니다. `exportarchive.sh`의 encryption password는 명령어 이력에 남기지 않고 stdin으로 전달합니다. 결과는 Jobs / Audit에서 stdout/stderr와 함께 확인합니다. `importarchive.sh`는 현재 MVP 실행 메뉴에서 제외합니다.
 

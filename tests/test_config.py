@@ -46,15 +46,17 @@ class ConfigTests(unittest.TestCase):
                 service.preview("importarchive.sh", "")
 
 
-    def test_diagnostic_dump_form_drops_arguments(self):
+    def test_diagnostic_dump_form_uses_zip_file_name(self):
         script, args, stdin_text = script_request({
             "script": ["diagnostic_dump.sh"],
             "arg_mode": ["diagnostic"],
-            "args": ["aa.zip"],
+            "diagnostic_zip": ["/u01/oas-admin-lite/bundles/aa.zip"],
         })
         self.assertEqual(script, "diagnostic_dump.sh")
-        self.assertEqual(args, "")
+        self.assertEqual(args, "/u01/oas-admin-lite/bundles/aa.zip")
         self.assertEqual(stdin_text, "")
+        with self.assertRaises(ValueError):
+            script_request({"script": ["diagnostic_dump.sh"], "arg_mode": ["diagnostic"]})
 
 
     def test_script_preview_uses_stdin_without_command_leak(self):
