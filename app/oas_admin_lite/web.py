@@ -230,10 +230,8 @@ def layout(ctx, title, active, content, query):
     <main class="content">
       <header class="page-header">
         <div>
-          <p class="eyebrow">OAS Admin Lite</p>
           <h1>{title}</h1>
           <p class="page-description">{description}</p>
-          <p class="page-path">{root}</p>
         </div>
       </header>
       {notice}
@@ -241,7 +239,7 @@ def layout(ctx, title, active, content, query):
     </main>
   </div>
 </body>
-</html>""".format(title=esc(title), nav=nav(active), description=esc(description), root=esc(ctx.cfg.paths.root), auth="Auth Enabled" if auth_enabled else "Local Mode", notice=notice, content=content)
+</html>""".format(title=esc(title), nav=nav(active), description=esc(description), auth="Auth Enabled" if auth_enabled else "Local Mode", notice=notice, content=content)
 
 
 def nav(active):

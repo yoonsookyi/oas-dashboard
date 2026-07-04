@@ -147,14 +147,6 @@ h3 {
   font-size: 13px;
   font-weight: 800;
 }
-.eyebrow {
-  margin: 0 0 8px;
-  color: var(--teal);
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0;
-  text-transform: uppercase;
-}
 .page-description {
   max-width: 980px;
   margin: 0 0 6px;
@@ -162,12 +154,6 @@ h3 {
   font-size: 14px;
   line-height: 1.58;
   overflow-wrap: anywhere;
-}
-.page-path {
-  margin: 0;
-  color: var(--muted);
-  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
-  font-size: 12px;
 }
 .muted { color: var(--muted); }
 
