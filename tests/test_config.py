@@ -8,6 +8,7 @@ from app.oas_admin_lite.catalog import CatalogService, analyze_acl, build_dashbo
 from app.oas_admin_lite.config import load_config, parse_simple_yaml
 from app.oas_admin_lite.scripts_runner import ScriptService, allowed_scripts
 from app.oas_admin_lite.storage import JobStore
+from app.oas_admin_lite.web import script_request
 
 
 class ConfigTests(unittest.TestCase):
@@ -43,6 +44,17 @@ class ConfigTests(unittest.TestCase):
             self.assertEqual(state["last_command"], "")
             with self.assertRaises(ValueError):
                 service.preview("importarchive.sh", "")
+
+
+    def test_diagnostic_dump_form_drops_arguments(self):
+        script, args, stdin_text = script_request({
+            "script": ["diagnostic_dump.sh"],
+            "arg_mode": ["diagnostic"],
+            "args": ["aa.zip"],
+        })
+        self.assertEqual(script, "diagnostic_dump.sh")
+        self.assertEqual(args, "")
+        self.assertEqual(stdin_text, "")
 
 
     def test_script_preview_uses_stdin_without_command_leak(self):

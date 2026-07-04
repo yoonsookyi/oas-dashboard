@@ -364,9 +364,9 @@ patch:
 
 ## Scripts 화면 안내
 
-Scripts 화면은 MVP 기준으로 `exportarchive.sh`와 `diagnostic_dump.sh`만 실행합니다. 작업 버튼을 선택하면 실행 명령어 방법과 매개변수 입력 폼이 표시됩니다. 스크립트 기준은 Oracle Analytics Server 공식 문서 [About the Scripts for Managing Service Instances](https://docs.oracle.com/en/middleware/bi/analytics-server/administer-oas/scripts-managing-service-instances.html)를 참고합니다.
+Scripts 화면은 MVP 기준으로 `exportarchive.sh`와 `diagnostic_dump.sh`만 실행합니다. 작업 버튼을 선택하면 실행 명령어 방법과 작업별 입력 영역이 표시됩니다. 스크립트 기준은 Oracle Analytics Server 공식 문서 [About the Scripts for Managing Service Instances](https://docs.oracle.com/en/middleware/bi/analytics-server/administer-oas/scripts-managing-service-instances.html)를 참고합니다.
 
-- `diagnostic_dump.sh`: 장애 분석용 진단 dump 생성
+- `diagnostic_dump.sh`: 장애 분석용 진단 dump 생성. 별도 출력 파일명을 입력하지 않고, 실행 결과의 `bilogs/dumpsecuritystores` 경로를 확인합니다.
 - `exportarchive.sh`: Catalog/security/model 산출물을 BAR archive로 export
 
 실행 전 `명령어 확인`으로 실제 명령을 확인하고, 실제 실행 시 확인 입력란에 `RUN`을 입력합니다. `exportarchive.sh`의 encryption password는 명령어 이력에 남기지 않고 stdin으로 전달합니다. 결과는 Jobs / Audit에서 stdout/stderr와 함께 확인합니다. `importarchive.sh`는 현재 MVP 실행 메뉴에서 제외합니다.
@@ -418,7 +418,7 @@ http://127.0.0.1:18080
 추가 구체화 필요:
 
 - 고객 OAS 환경의 실제 Catalog REST endpoint, page/limit 정책, ACL 조회 범위 튜닝
-- diagnostic_dump.sh 옵션 입력 UI 세분화
+- diagnostic_dump.sh 진단 결과 경로 표시 및 다운로드 동선 강화
 - Catalog Detail CSV/JSON 결과 다운로드
 - 패치 전후 자동 진단/백업 절차 강화
 

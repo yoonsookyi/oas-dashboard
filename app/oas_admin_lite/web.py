@@ -180,9 +180,9 @@ SCRIPT_ACTIONS = [
     },
     {
         "script": "diagnostic_dump.sh",
-        "mode": "raw",
+        "mode": "diagnostic",
         "label": "Oracle Support 진단 번들 수집",
-        "method": "diagnostic_dump.sh -help\n\n실행 시 BI Diagnostic Dump 버전, oa_platform/WebLogic 버전, exp_jazn-data.xml 덤프 경로, dumpsecuritystores.log 등 진단 경로가 출력됩니다. 출력에 표시된 로그와 덤프 파일을 지원 요청 자료로 사용합니다.",
+        "method": "diagnostic_dump.sh\n\n서버 실행 결과 기준으로 별도 출력 파일명을 지정하지 않습니다. 실행 출력에 BI Diagnostic Dump 버전, oa_platform/WebLogic 버전, exp_jazn-data.xml 덤프 경로, dumpsecuritystores.log 경로가 표시됩니다. 표시된 경로의 파일을 Oracle Support 요청 자료로 사용합니다.",
     },
 ]
 
@@ -190,7 +190,7 @@ PAGE_DESCRIPTIONS = {
     "resources": "OAS 서버의 CPU, Memory, Swap, /u01 Disk, Listener, Process 상태와 주요 런타임 경로를 확인합니다. 앱 설정값은 Settings에서 확인합니다.",
     "catalog": "OAS REST API 수집 결과로 카탈로그 유형, 소유자, 변경일, 폴더 구조, ACL 리스크를 확인합니다.",
     "patch": "현재 ORACLE_HOME의 OPatch inventory를 조회해 설치된 패치 레벨을 확인합니다. 이 화면은 조회 전용이며 패치를 적용하지 않습니다.",
-    "scripts": "MVP에서는 exportarchive.sh와 diagnostic_dump.sh만 작업 버튼으로 선택하고, 실행 방법 확인 후 매개변수를 입력해 명령어 확인 또는 실행합니다.",
+    "scripts": "MVP에서는 exportarchive.sh와 diagnostic_dump.sh만 작업 버튼으로 선택합니다. exportarchive는 필요한 값을 입력하고, diagnostic_dump는 별도 인자 없이 명령어 확인 또는 실행합니다.",
     "jobs": "Catalog 수집, OPatch, OAS 스크립트 실행 이력을 조회합니다. 명령, 결과, 메시지를 audit trail로 확인합니다.",
     "settings": "현재 앱 설정, OAS 경로, Catalog REST 연결 설정을 조회 전용으로 표시합니다. 값 변경은 app.yaml 또는 환경변수에서 수행합니다.",
 }
@@ -580,6 +580,8 @@ def script_fields(action):
         <label class="full">Optional parameters<input name="export_options" placeholder="noconnectionparams nouserfolders includedata advancedoptions=/path/options.json"></label>
         <label class="full">Encryption password(stdin)<input type="password" name="stdin_text" autocomplete="new-password" placeholder="명령어 이력에 남기지 않고 stdin으로 전달"></label>
         """
+    if action["mode"] == "diagnostic":
+        return '<p class="muted full">diagnostic_dump.sh는 출력 파일명 매개변수를 입력하지 않습니다. 실행 결과에 표시된 exp_jazn-data.xml 및 dumpsecuritystores.log 경로를 확인하세요.</p>'
     return '<label class="full">Arguments<input name="args" placeholder="help 출력에서 확인한 옵션 입력"></label>'
 
 
@@ -592,6 +594,8 @@ def script_request(form):
         export_dir = required(form, "export_dir", "Export directory")
         stdin_text = required(form, "stdin_text", "Encryption password(stdin)")
         raw_args = join_args([service_instance, export_dir], first(form, "export_options"))
+    elif mode == "diagnostic":
+        raw_args = ""
     else:
         raw_args = first(form, "args")
     return script, raw_args, stdin_text

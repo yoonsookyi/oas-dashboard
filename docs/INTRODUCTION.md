@@ -114,12 +114,12 @@ Oracle Analytics Server의 service instance/BAR 관련 관리 스크립트 중 M
 
 허용된 스크립트:
 
-- `diagnostic_dump.sh`: 장애 분석용 진단 dump 생성
+- `diagnostic_dump.sh`: 장애 분석용 진단 dump 생성. 별도 출력 파일명을 입력하지 않고, 실행 결과의 `bilogs/dumpsecuritystores` 경로를 확인합니다.
 - `exportarchive.sh`: Catalog/security/model 산출물을 BAR archive로 export
 
 설정된 `bitools/bin` 경로 아래의 allowlist 스크립트만 실행합니다. 임의 shell 명령 실행 기능은 제공하지 않습니다. `importarchive.sh`는 현재 MVP 실행 메뉴에서 제외합니다.
 
-화면은 작업 선택 버튼, 실행 명령어 방법, 매개변수 입력 폼, 명령어 확인/실행 버튼으로 구성합니다. 실행 시에는 확인 문구 `RUN` 입력이 필요합니다. 스크립트 기준은 Oracle Analytics Server 공식 문서 [About the Scripts for Managing Service Instances](https://docs.oracle.com/en/middleware/bi/analytics-server/administer-oas/scripts-managing-service-instances.html)를 참고합니다.
+화면은 작업 선택 버튼, 실행 명령어 방법, 작업별 입력 영역, 명령어 확인/실행 버튼으로 구성합니다. 실행 시에는 확인 문구 `RUN` 입력이 필요합니다. 스크립트 기준은 Oracle Analytics Server 공식 문서 [About the Scripts for Managing Service Instances](https://docs.oracle.com/en/middleware/bi/analytics-server/administer-oas/scripts-managing-service-instances.html)를 참고합니다.
 
 ### 3.5 Jobs / Audit
 
@@ -546,7 +546,7 @@ export OAS_ADMIN_LITE_PASSWORD_SHA256="<sha256-hash>"
 MVP에서는 다음 두 작업만 유지합니다.
 
 - `exportarchive.sh`: BAR 저장 경로, service instance
-- `diagnostic_dump.sh`: 서버 help 기준 옵션 또는 기본 실행
+- `diagnostic_dump.sh`: 별도 인자 없이 기본 실행, 결과 경로는 실행 출력에서 확인
 
 ### 9.4 OAS 문서 기준 확인
 
