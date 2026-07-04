@@ -104,6 +104,16 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(summary["acl_summary"]["risk_total"], 2)
 
 
+    def test_catalog_type_endpoint_includes_search_wildcard(self):
+        cfg = load_config("configs/app.local.yaml")
+        with tempfile.TemporaryDirectory() as tmp:
+            store = JobStore(os.path.join(tmp, "test.db"))
+            service = CatalogService(cfg, store)
+            endpoint = service._catalog_type_endpoint("datasets", 1)
+        self.assertIn("/catalog/datasets?", endpoint)
+        self.assertIn("search=%2A", endpoint)
+        self.assertIn("limit=500", endpoint)
+        self.assertIn("page=1", endpoint)
 
     def test_type_endpoint_items_can_use_type_hint(self):
         payload = {"items": [{"id": "dataset-1", "name": "Sales Dataset", "owner": "bi_admin", "lastModified": "2026-07-04T08:00:00Z"}]}

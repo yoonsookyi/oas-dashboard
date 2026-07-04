@@ -243,7 +243,7 @@ class CatalogService(object):
 
     def _catalog_type_endpoint(self, type_name, page):
         base = strip_query(self._catalog_endpoint()).rstrip("/")
-        query = urlencode({"limit": TYPE_PAGE_LIMIT, "page": page})
+        query = urlencode({"search": "*", "limit": TYPE_PAGE_LIMIT, "page": page})
         return "{0}/{1}?{2}".format(base, quote(str(type_name).strip(), safe=""), query)
 
     def _catalog_action_endpoint(self, type_name, item_id, action):
