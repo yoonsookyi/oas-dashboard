@@ -322,7 +322,8 @@ button.danger:hover,
 .stack { display: grid; gap: 12px; max-width: 820px; }
 label { display: grid; gap: 6px; color: #334155; font-weight: 750; }
 input,
-select {
+select,
+textarea {
   width: 100%;
   min-height: 40px;
   padding: 8px 10px;
@@ -332,8 +333,13 @@ select {
   color: var(--ink);
   font: inherit;
 }
+textarea {
+  min-height: 96px;
+  resize: vertical;
+}
 input:focus,
-select:focus {
+select:focus,
+textarea:focus {
   outline: 2px solid rgba(8, 127, 140, 0.18);
   border-color: var(--teal);
 }
@@ -614,6 +620,12 @@ select:focus {
   line-height: 1.45;
 }
 .form-help { margin: -4px 0 4px; }
+.command-preview textarea {
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre;
+}
 .script-run-panel .result {
   margin-top: 18px;
 }

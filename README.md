@@ -369,7 +369,7 @@ Scripts 화면은 MVP 기준으로 `exportarchive.sh`와 `diagnostic_dump.sh`만
 - `diagnostic_dump.sh`: Oracle Support 요청 시 제공할 진단 ZIP 번들 생성. `diagnostic_dump.sh <zip file name>` 형식으로 ZIP 파일명을 입력하며, 결과 경로는 `/u01/oas-admin-lite/bundles`입니다.
 - `exportarchive.sh`: Catalog/security/model 산출물을 BAR archive로 export. 결과 경로는 `/u01/oas-admin-lite/backups`입니다.
 
-실행 전 `명령어 확인`으로 실제 명령을 확인하고, 실제 실행 시 확인 입력란에 `RUN`을 입력합니다. `exportarchive.sh`의 encryption password는 명령어 이력에 남기지 않고 stdin으로 전달합니다. 결과는 Jobs / Audit에서 stdout/stderr와 함께 확인합니다. `importarchive.sh`는 현재 MVP 실행 메뉴에서 제외합니다.
+`명령어 확인`: 입력한 값으로 실행될 명령어를 아래에 표시합니다. 이 단계에서는 스크립트를 실행하지 않습니다. `실행`: 현재 입력값으로 실제 OAS 스크립트를 실행하고 stdout/stderr, exit code, 로그 경로를 Jobs / Audit에 저장합니다. `exportarchive.sh`의 encryption password는 명령어 이력에 남기지 않고 stdin으로 전달합니다. 결과는 Jobs / Audit에서 stdout/stderr와 함께 확인합니다. `importarchive.sh`는 현재 MVP 실행 메뉴에서 제외합니다.
 
 ## 개발 및 테스트
 

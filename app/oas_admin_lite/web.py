@@ -77,12 +77,12 @@ def make_handler(ctx):
 
                 elif parsed.path == "/scripts/preview":
                     script, args, stdin_text = script_request(form)
+                    ctx.store.set_json("script_form_state", script_form_state(form))
                     ctx.scripts.preview(script, args, stdin_text)
                     self._redirect_flash(script_redirect(script), "스크립트 실행 명령어 확인 결과가 생성되었습니다.")
                 elif parsed.path == "/scripts/run":
                     script, args, stdin_text = script_request(form)
-                    if first(form, "confirm") != "RUN":
-                        raise ValueError("실행하려면 확인 입력란에 RUN을 입력해야 합니다.")
+                    ctx.store.set_json("script_form_state", script_form_state(form))
                     ctx.scripts.run(script, args, stdin_text)
                     self._redirect_flash(script_redirect(script), "스크립트 실행이 완료되었습니다.")
                 else:
@@ -518,6 +518,9 @@ def scripts_page(ctx, query):
         content = '<section class="panel"><h2>작업 선택</h2><p class="muted">허용된 스크립트가 없습니다. Settings 또는 app.yaml의 scripts.allowed 값을 확인하세요.</p></section>'
         return layout(ctx, "Scripts", "scripts", content, query)
     selected = selected_script(query, actions)
+    saved_form = script_saved_form(ctx, selected["script"])
+    command = script_last_command(state, selected["script"])
+    recent_output = state.get("last_output", "") if command else ""
     content = """
 <section class="panel">
   <div class="panel-head"><h2>작업 선택</h2><span class="muted">{bitools}</span></div>
@@ -532,13 +535,13 @@ def scripts_page(ctx, query):
       <input type="hidden" name="arg_mode" value="{mode}">
       <div class="script-form-grid">{fields}</div>
       <div class="actions"><button formaction="/scripts/preview" type="submit" class="secondary">명령어 확인</button></div>
-      <p class="muted form-help full">실제 실행하지 않고 생성될 명령어와 stdin 사용 여부만 Jobs / Audit에 기록합니다.</p>
-      <label class="full">실행 확인<input name="confirm" placeholder="RUN"><span class="field-help">실제 실행하려면 RUN을 대문자로 입력합니다.</span></label>
+      <p class="muted form-help full">입력한 값으로 실행될 명령어를 아래에 표시합니다. 이 단계에서는 스크립트를 실행하지 않습니다.</p>
+      {command_box}
       <button formaction="/scripts/run" type="submit" class="danger">실행</button>
-      <p class="muted form-help full">RUN 확인 후 실제 OAS 스크립트를 실행하고 stdout/stderr, exit code, 로그 경로를 Jobs / Audit에 저장합니다.</p>
+      <p class="muted form-help full">현재 입력값으로 실제 OAS 스크립트를 실행하고 stdout/stderr, exit code, 로그 경로를 Jobs / Audit에 저장합니다.</p>
+      {recent_result}
     </form>
   </div>
-  {result}
 </section>
 """.format(
         bitools=esc(state.get("bitools_bin", "")),
@@ -547,8 +550,9 @@ def scripts_page(ctx, query):
         script=esc(selected["script"]),
         method=esc(selected["method"]),
         mode=esc(selected["mode"]),
-        fields=script_fields(selected),
-        result=result_block(state.get("last_command", ""), state.get("last_output", "")),
+        fields=script_fields(selected, saved_form),
+        command_box=script_command_box(command),
+        recent_result=script_recent_result(recent_output),
     )
     return layout(ctx, "Scripts", "scripts", content, query)
 
@@ -566,6 +570,41 @@ def selected_script(query, actions):
     return actions[0]
 
 
+def script_saved_form(ctx, script):
+    saved = ctx.store.get_json("script_form_state", {})
+    if saved.get("script") != script:
+        return {}
+    return saved
+
+
+def script_form_state(form):
+    return {
+        "script": first(form, "script"),
+        "arg_mode": first(form, "arg_mode"),
+        "service_instance": first(form, "service_instance"),
+        "export_dir": first(form, "export_dir"),
+        "export_options": first(form, "export_options"),
+        "diagnostic_zip": first(form, "diagnostic_zip"),
+    }
+
+
+def script_last_command(state, script):
+    command = state.get("last_command", "")
+    if command and script in command:
+        return command
+    return ""
+
+
+def script_command_box(command):
+    return '<label class="full command-preview">실행될 명령어<textarea readonly placeholder="명령어 확인을 누르면 여기에 표시됩니다.">{0}</textarea><span class="field-help">표시된 명령어를 확인한 뒤 실행 버튼을 누르면 현재 입력값으로 스크립트를 실행합니다.</span></label>'.format(esc(command))
+
+
+def script_recent_result(output):
+    if not output:
+        return ""
+    return '<div class="result script-result"><h3>최근 결과</h3><pre>{0}</pre></div>'.format(esc(output))
+
+
 def script_picker(actions, selected):
     buttons = []
     for item in actions:
@@ -574,19 +613,20 @@ def script_picker(actions, selected):
     return '<form method="get" action="/scripts" class="script-picker">{0}</form>'.format("".join(buttons))
 
 
-def script_fields(action):
+def script_fields(action, values=None):
+    values = values or {}
     if action["mode"] == "exportarchive":
         return """
-        <label>Service instance key<input name="service_instance" placeholder="ssi"></label>
-        <label>Export directory<input name="export_dir" placeholder="/u01/oas-admin-lite/backups/export"></label>
-        <label class="full">Optional parameters<input name="export_options" placeholder="noconnectionparams nouserfolders includedata advancedoptions=/path/options.json"></label>
+        <label>Service instance key<input name="service_instance" value="{service_instance}" placeholder="ssi"></label>
+        <label>Export directory<input name="export_dir" value="{export_dir}" placeholder="/u01/oas-admin-lite/backups/export"></label>
+        <label class="full">Optional parameters<input name="export_options" value="{export_options}" placeholder="noconnectionparams nouserfolders includedata advancedoptions=/path/options.json"></label>
         <label class="full">Encryption password(stdin)<input type="password" name="stdin_text" autocomplete="new-password" placeholder="명령어 이력에 남기지 않고 stdin으로 전달"></label>
-        """
+        """.format(service_instance=esc(values.get("service_instance", "")), export_dir=esc(values.get("export_dir", "")), export_options=esc(values.get("export_options", "")))
     if action["mode"] == "diagnostic":
         return """
-        <label class="full">ZIP file name<input name="diagnostic_zip" placeholder="/u01/oas-admin-lite/bundles/oas-diagnostic.zip"></label>
+        <label class="full">ZIP file name<input name="diagnostic_zip" value="{diagnostic_zip}" placeholder="/u01/oas-admin-lite/bundles/oas-diagnostic.zip"></label>
         <p class="muted full">Oracle OAS 문서의 diagnostic_dump.sh &lt;zip file name&gt; 형식을 따릅니다. 진단 번들 결과 경로는 /u01/oas-admin-lite/bundles를 기준으로 하며, 생성된 ZIP은 Oracle Support 요청 시 제공합니다.</p>
-        """
+        """.format(diagnostic_zip=esc(values.get("diagnostic_zip", "")))
     return '<label class="full">Arguments<input name="args" placeholder="help 출력에서 확인한 옵션 입력"></label>'
 
 

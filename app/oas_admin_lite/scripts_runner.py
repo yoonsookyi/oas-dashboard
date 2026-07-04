@@ -47,7 +47,7 @@ class ScriptService(object):
 
     def preview(self, script, raw_args, stdin_text=""):
         command = self._command(script, raw_args)
-        output = "명령어 확인 전용입니다. stdin 입력: {0}".format("있음" if stdin_text else "없음")
+        output = "\uc2a4\ud06c\ub9bd\ud2b8\ub294 \uc2e4\ud589\ud558\uc9c0 \uc54a\uc558\uc2b5\ub2c8\ub2e4. \uc2e4\ud589\ub420 \uba85\ub839\uc5b4\ub97c \ud655\uc778\ud55c \ub4a4 \uc2e4\ud589 \ubc84\ud2bc\uc744 \ub204\ub974\uc138\uc694."
         self._record("script_command_check", command, "SUCCESS", 0, output, time.time(), time.time(), "")
 
     def run(self, script, raw_args, stdin_text=""):

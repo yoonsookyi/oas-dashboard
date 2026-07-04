@@ -8,7 +8,7 @@ from app.oas_admin_lite.catalog import CatalogService, analyze_acl, build_dashbo
 from app.oas_admin_lite.config import load_config, parse_simple_yaml
 from app.oas_admin_lite.scripts_runner import ScriptService, allowed_scripts
 from app.oas_admin_lite.storage import JobStore
-from app.oas_admin_lite.web import script_request
+from app.oas_admin_lite.web import script_form_state, script_request
 
 
 class ConfigTests(unittest.TestCase):
@@ -59,6 +59,21 @@ class ConfigTests(unittest.TestCase):
             script_request({"script": ["diagnostic_dump.sh"], "arg_mode": ["diagnostic"]})
 
 
+    def test_script_form_state_excludes_stdin_secret(self):
+        state = script_form_state({
+            "script": ["exportarchive.sh"],
+            "arg_mode": ["exportarchive"],
+            "service_instance": ["ssi"],
+            "export_dir": ["/u01/oas-admin-lite/backups/export"],
+            "export_options": ["includedata"],
+            "stdin_text": ["secret-password"],
+        })
+        self.assertEqual(state["service_instance"], "ssi")
+        self.assertEqual(state["export_dir"], "/u01/oas-admin-lite/backups/export")
+        self.assertNotIn("stdin_text", state)
+        self.assertNotIn("secret-password", str(state))
+
+
     def test_script_preview_uses_stdin_without_command_leak(self):
         cfg = load_config("configs/app.local.yaml")
         with tempfile.TemporaryDirectory() as tmp:
@@ -69,7 +84,7 @@ class ConfigTests(unittest.TestCase):
             self.assertIn("exportarchive.sh", state["last_command"])
             self.assertIn("ssi", state["last_command"])
             self.assertNotIn("secret-password", state["last_command"])
-            self.assertIn("stdin 입력: 있음", state["last_output"])
+            self.assertIn("\uc2a4\ud06c\ub9bd\ud2b8\ub294 \uc2e4\ud589\ud558\uc9c0 \uc54a\uc558\uc2b5\ub2c8\ub2e4", state["last_output"])
 
     def test_catalog_dashboard_summary(self):
         items = normalize_items([
