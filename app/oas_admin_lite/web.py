@@ -187,12 +187,12 @@ SCRIPT_ACTIONS = [
 ]
 
 PAGE_DESCRIPTIONS = {
-    "resources": "OAS 서버의 CPU, Memory, Swap, /u01 Disk, Listener, Process 상태와 주요 런타임 경로를 확인합니다. 앱 설정값은 Settings에서 확인합니다.",
+    "resources": "OAS 서버의 CPU, Memory, Swap, /u01 Disk, Listener, Process 상태를 확인합니다. OAS/OHS 경로 설정값은 Settings에서 확인합니다.",
     "catalog": "OAS REST API 수집 결과로 카탈로그 유형, 소유자, 변경일, 폴더 구조, ACL 리스크를 확인합니다.",
     "patch": "현재 ORACLE_HOME의 OPatch inventory를 조회해 설치된 패치 레벨을 확인합니다. 이 화면은 조회 전용이며 패치를 적용하지 않습니다.",
     "scripts": "MVP에서는 exportarchive.sh와 diagnostic_dump.sh만 작업 버튼으로 선택합니다. exportarchive는 필요한 값을 입력하고, diagnostic_dump는 ZIP 파일명을 입력한 뒤 명령어 확인 또는 실행합니다.",
     "jobs": "Catalog 수집, OPatch, OAS 스크립트 실행 이력을 조회합니다. 명령, 결과, 메시지를 audit trail로 확인합니다.",
-    "settings": "모니터링 웹앱, OAS, OHS 설정값을 구분해 조회 전용으로 표시합니다. 값 변경은 app.yaml 또는 환경변수에서 수행합니다.",
+    "settings": "OAS, OHS, 모니터링 웹앱 설정값을 구분해 조회 전용으로 표시합니다. 값 변경은 app.yaml 또는 환경변수에서 수행합니다.",
 }
 
 
@@ -261,7 +261,6 @@ def nav(active):
 
 def resources_page(ctx, query):
     snap = ctx.resources.snapshot()
-    oas_cards = "".join(path_card(check) for check in snap.oas_checks)
     metric_cards = "".join(metric_card(metric) for metric in snap.metrics)
     resource_rows = "".join(check_row(c, value_second=False) for c in snap.resource_checks)
     content = """
@@ -275,14 +274,10 @@ def resources_page(ctx, query):
   <div class="metric-grid">{metric_cards}</div>
 </section>
 <section class="panel">
-  <div class="panel-head"><h2>OAS 런타임 경로</h2></div>
-  <div class="status-grid">{oas_cards}</div>
-</section>
-<section class="panel">
   <div class="panel-head"><h2>리스너 및 프로세스 상세</h2></div>
   <table><thead><tr><th>항목</th><th>상태</th><th>값</th><th>상세</th></tr></thead><tbody>{resource_rows}</tbody></table>
 </section>
-""".format(snapshot=snapshot_kv(snap), legend=metric_status_legend(), metric_cards=metric_cards, oas_cards=oas_cards, resource_rows=resource_rows)
+""".format(snapshot=snapshot_kv(snap), legend=metric_status_legend(), metric_cards=metric_cards, resource_rows=resource_rows)
     return layout(ctx, "Resources", "resources", content, query)
 
 def path_card(check):
@@ -708,9 +703,9 @@ def settings_page(ctx, query):
     ]
     content = """
 <div class="settings-sections">
-  {app_group}
   {oas_group}
   {ohs_group}
+  {app_group}
 </div>
 <section class="panel settings-note">
   <h2>설정 변경 위치</h2>
