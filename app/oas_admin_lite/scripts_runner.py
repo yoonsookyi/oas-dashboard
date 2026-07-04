@@ -38,9 +38,11 @@ class ScriptService(object):
     def state_dict(self):
         saved = self.store.get_json("script_state", {})
         data = self.state.to_dict()
-        data["last_command"] = saved.get("last_command", data["last_command"])
-        data["last_output"] = saved.get("last_output", data["last_output"])
         data["allowed"] = allowed_scripts(data.get("allowed"))
+        last_command = saved.get("last_command", data["last_command"])
+        if last_command and any(script in last_command for script in data["allowed"]):
+            data["last_command"] = last_command
+            data["last_output"] = saved.get("last_output", data["last_output"])
         return data
 
     def preview(self, script, raw_args, stdin_text=""):

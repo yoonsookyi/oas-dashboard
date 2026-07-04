@@ -27,7 +27,6 @@ patch:
 
 scripts:
   allowed:
-    - "datamodel.sh"
     - "diagnostic_dump.sh"
     - "exportarchive.sh"
 

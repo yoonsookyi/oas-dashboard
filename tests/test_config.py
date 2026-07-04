@@ -14,8 +14,10 @@ class ConfigTests(unittest.TestCase):
     def test_parse_nested_lists(self):
         data = parse_simple_yaml(Path("configs/app.yaml.sample").read_text(encoding="utf-8"))
         self.assertEqual(data["server"]["listen"], "127.0.0.1:18080")
-        self.assertIn("datamodel.sh", data["scripts"]["allowed"])
-        self.assertIn("runcat.sh", data["scripts"]["allowed"])
+        self.assertNotIn("datamodel.sh", data["scripts"]["allowed"])
+        self.assertNotIn("runcat.sh", data["scripts"]["allowed"])
+        self.assertIn("exportarchive.sh", data["scripts"]["allowed"])
+        self.assertIn("diagnostic_dump.sh", data["scripts"]["allowed"])
         self.assertIn("/u01/stage/patches", data["patch"]["allowed_patch_dirs"])
         self.assertEqual(data["oas"]["catalog_base_url"], "http://localhost:7777")
         self.assertEqual(data["oas"]["catalog_api_path"], "/api/20210901/catalog")
@@ -23,19 +25,22 @@ class ConfigTests(unittest.TestCase):
     def test_load_local_config(self):
         cfg = load_config("configs/app.local.yaml")
         self.assertEqual(cfg.paths.root, ".local/oas-admin-lite")
-        self.assertEqual(cfg.scripts.allowed[0], "datamodel.sh")
+        self.assertEqual(cfg.scripts.allowed, ["diagnostic_dump.sh", "exportarchive.sh"])
         self.assertEqual(cfg.oas.catalog_api_path, "/mock/catalog")
 
     def test_importarchive_is_blocked(self):
         cfg = load_config("configs/app.local.yaml")
-        cfg.scripts.allowed = ["datamodel.sh", "importarchive.sh", "runcat.sh"]
-        self.assertEqual(allowed_scripts(cfg.scripts.allowed), ["datamodel.sh", "runcat.sh"])
+        cfg.scripts.allowed = ["diagnostic_dump.sh", "importarchive.sh", "exportarchive.sh"]
+        self.assertEqual(allowed_scripts(cfg.scripts.allowed), ["diagnostic_dump.sh", "exportarchive.sh"])
         with tempfile.TemporaryDirectory() as tmp:
             store = JobStore(os.path.join(tmp, "test.db"))
-            store.set_json("script_state", {"allowed": ["datamodel.sh", "importarchive.sh"]})
+            store.set_json("script_state", {"last_command": "/tmp/datamodel.sh downloadrpd", "last_output": "legacy"})
             service = ScriptService(cfg, store)
-            self.assertNotIn("importarchive.sh", service.state_dict()["allowed"])
-            self.assertIn("runcat.sh", service.state_dict()["allowed"])
+            state = service.state_dict()
+            self.assertNotIn("importarchive.sh", state["allowed"])
+            self.assertNotIn("datamodel.sh", state["allowed"])
+            self.assertNotIn("runcat.sh", state["allowed"])
+            self.assertEqual(state["last_command"], "")
             with self.assertRaises(ValueError):
                 service.preview("importarchive.sh", "")
 

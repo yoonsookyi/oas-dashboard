@@ -43,7 +43,6 @@ flowchart LR
 - Catalog: OAS REST API 기반 유형별 현황, owner, 변경일, 폴더 구조, ACL 리스크 대시보드
 - Patch: `opatch lsinventory` 기반 현재 패치 레벨 조회
 - Scripts: allowlist 기반 OAS 관리 스크립트 실행
-  - `datamodel.sh`
   - `diagnostic_dump.sh`
   - `exportarchive.sh`
 - Jobs / Audit: SQLite 기반 작업 이력 저장
@@ -365,13 +364,12 @@ patch:
 
 ## Scripts 화면 안내
 
-Scripts 화면은 허용된 OAS 관리 스크립트만 실행합니다. 화면에는 실행 정책, 허용 스크립트 목록, 스크립트별 기능, 사용 방법, 결과 활용 방법이 함께 표시됩니다. 스크립트 기준은 Oracle Analytics Server 공식 문서 [About the Scripts for Managing Service Instances](https://docs.oracle.com/en/middleware/bi/analytics-server/administer-oas/scripts-managing-service-instances.html)를 참고합니다.
+Scripts 화면은 MVP 기준으로 `exportarchive.sh`와 `diagnostic_dump.sh`만 실행합니다. 작업 버튼을 선택하면 실행 명령어 방법과 매개변수 입력 폼이 표시됩니다. 스크립트 기준은 Oracle Analytics Server 공식 문서 [About the Scripts for Managing Service Instances](https://docs.oracle.com/en/middleware/bi/analytics-server/administer-oas/scripts-managing-service-instances.html)를 참고합니다.
 
-- `datamodel.sh`: semantic model, connection, data model 관련 정보 추출 또는 관리
 - `diagnostic_dump.sh`: 장애 분석용 진단 dump 생성
 - `exportarchive.sh`: Catalog/security/model 산출물을 BAR archive로 export
 
-실행 전 `Preview`로 명령을 확인하고, 실제 실행 시 확인 입력란에 `RUN`을 입력합니다. 결과는 Jobs / Audit에서 stdout/stderr와 함께 확인합니다. `importarchive.sh`는 대상 환경의 메타데이터를 교체할 수 있으므로 현재 앱 실행 메뉴에서는 제외합니다.
+실행 전 `명령어 확인`으로 실제 명령을 확인하고, 실제 실행 시 확인 입력란에 `RUN`을 입력합니다. `exportarchive.sh`의 encryption password는 명령어 이력에 남기지 않고 stdin으로 전달합니다. 결과는 Jobs / Audit에서 stdout/stderr와 함께 확인합니다. `importarchive.sh`는 현재 MVP 실행 메뉴에서 제외합니다.
 
 ## 개발 및 테스트
 
@@ -430,6 +428,5 @@ OAS 관련 기능을 확장할 때는 OBIEE 문서가 아니라 Oracle Analytics
 
 특히 다음 기능은 Oracle Analytics Server의 service instance 관리 스크립트 문서인 [About the Scripts for Managing Service Instances](https://docs.oracle.com/en/middleware/bi/analytics-server/administer-oas/scripts-managing-service-instances.html)를 기준으로 검증합니다.
 
-- `datamodel.sh`
 - `diagnostic_dump.sh`
 - `exportarchive.sh`

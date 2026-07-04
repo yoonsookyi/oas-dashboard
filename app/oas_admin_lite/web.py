@@ -171,46 +171,7 @@ def first(form, key):
     return values[0]
 
 
-DATAMODEL_OPERATIONS = [
-    "downloadrpd",
-    "uploadrpd",
-    "uploadxml",
-    "listrpdvariables",
-    "updaterpdvariables",
-    "listconnectionpool",
-    "updateconnectionpool",
-    "renameusers",
-    "deleteusers",
-    "renameapproles",
-    "deleteapproles",
-    "listcustomizationgroups",
-    "-h",
-]
-
-RUNCAT_COMMANDS = [
-    "report",
-    "archive",
-    "unarchive",
-    "createFolder",
-    "delete",
-    "rename",
-    "replace",
-    "localize",
-    "setItemProperties",
-    "upgradeCatalog",
-    "renameAccounts",
-    "forgetAccounts",
-    "setOwnership",
-    "setItemPermissions",
-]
-
 SCRIPT_ACTIONS = [
-    {
-        "script": "datamodel.sh",
-        "mode": "datamodel",
-        "label": "BAR 파일에서 시맨틱 모델 추출",
-        "method": "datamodel.sh -h\ndatamodel.sh <operation> -h\ndatamodel.sh downloadrpd <operation options>\n\nValid operations: renameapproles, deleteapproles, renameusers, deleteusers, listconnectionpool, updateconnectionpool, listrpdvariables, updaterpdvariables, downloadrpd, uploadrpd, uploadxml, listcustomizationgroups",
-    },
     {
         "script": "exportarchive.sh",
         "mode": "exportarchive",
@@ -222,12 +183,6 @@ SCRIPT_ACTIONS = [
         "mode": "raw",
         "label": "Oracle Support 진단 번들 수집",
         "method": "diagnostic_dump.sh -help\n\n실행 시 BI Diagnostic Dump 버전, oa_platform/WebLogic 버전, exp_jazn-data.xml 덤프 경로, dumpsecuritystores.log 등 진단 경로가 출력됩니다. 출력에 표시된 로그와 덤프 파일을 지원 요청 자료로 사용합니다.",
-    },
-    {
-        "script": "runcat.sh",
-        "mode": "runcat",
-        "label": "Catalog Manager 명령 실행",
-        "method": "runcat.sh -help\nruncat.sh -cmd <command> -help\nruncat.sh -cmd report <command options>\n\nSupported commands: createFolder, delete, rename, report, replace, localize, archive, unarchive, setItemProperties, upgradeCatalog, renameAccounts, forgetAccounts, setOwnership, setItemPermissions",
     },
 ]
 
@@ -618,46 +573,25 @@ def script_picker(actions, selected):
 
 
 def script_fields(action):
-    mode = action["mode"]
-    if mode == "datamodel":
-        return """
-        <label>Operation<select name="operation">{operations}</select></label>
-        <label>Operation options<input name="operation_args" placeholder="작업별 -h 출력에서 확인한 옵션 입력"></label>
-        """.format(operations=options(DATAMODEL_OPERATIONS, "downloadrpd"))
-    if mode == "exportarchive":
+    if action["mode"] == "exportarchive":
         return """
         <label>Service instance key<input name="service_instance" placeholder="ssi"></label>
         <label>Export directory<input name="export_dir" placeholder="/u01/oas-admin-lite/backups/export"></label>
         <label class="full">Optional parameters<input name="export_options" placeholder="noconnectionparams nouserfolders includedata advancedoptions=/path/options.json"></label>
         <label class="full">Encryption password(stdin)<input type="password" name="stdin_text" autocomplete="new-password" placeholder="명령어 이력에 남기지 않고 stdin으로 전달"></label>
         """
-    if mode == "runcat":
-        return """
-        <label>Catalog command<select name="catalog_command">{commands}</select></label>
-        <label>Command options<input name="catalog_args" placeholder="-help 또는 선택한 command 옵션"></label>
-        """.format(commands=options(RUNCAT_COMMANDS, "report"))
     return '<label class="full">Arguments<input name="args" placeholder="help 출력에서 확인한 옵션 입력"></label>'
-
-
-def options(items, selected):
-    return "".join('<option value="{0}"{1}>{0}</option>'.format(esc(item), ' selected' if item == selected else '') for item in items)
 
 
 def script_request(form):
     script = first(form, "script")
     mode = first(form, "arg_mode")
     stdin_text = first(form, "stdin_text")
-    if mode == "datamodel":
-        operation = required(form, "operation", "Operation")
-        raw_args = join_args([operation], first(form, "operation_args"))
-    elif mode == "exportarchive":
+    if mode == "exportarchive":
         service_instance = required(form, "service_instance", "Service instance key")
         export_dir = required(form, "export_dir", "Export directory")
         stdin_text = required(form, "stdin_text", "Encryption password(stdin)")
         raw_args = join_args([service_instance, export_dir], first(form, "export_options"))
-    elif mode == "runcat":
-        command = required(form, "catalog_command", "Catalog command")
-        raw_args = join_args(["-cmd", command], first(form, "catalog_args"))
     else:
         raw_args = first(form, "args")
     return script, raw_args, stdin_text

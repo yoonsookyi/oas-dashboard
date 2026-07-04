@@ -41,10 +41,8 @@ class PatchConfig(object):
 class ScriptsConfig(object):
     def __init__(self):
         self.allowed = [
-            "datamodel.sh",
             "diagnostic_dump.sh",
             "exportarchive.sh",
-            "runcat.sh",
         ]
 
 
