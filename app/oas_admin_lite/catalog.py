@@ -115,7 +115,7 @@ class CatalogService(object):
                 dashboard["message"] = "카탈로그 자산 대시보드 수집이 완료되었습니다."
             elif supported_types:
                 dashboard["status"] = "WARN"
-                dashboard["message"] = "지원 type 목록은 수집했지만 catalog item 목록은 수집하지 못했습니다. type endpoint 권한과 검색 조건을 확인하세요."
+                dashboard["message"] = ""
             else:
                 dashboard["status"] = "WARN"
                 dashboard["message"] = "JSON 응답은 받았지만 catalog item 또는 type 정보를 찾지 못했습니다."

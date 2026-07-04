@@ -101,6 +101,24 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(summary["owners"][0]["owner"], "finance_ops")
         self.assertEqual(summary["acl_summary"]["risk_total"], 2)
 
+
+    def test_catalog_type_only_scan_has_empty_message(self):
+        cfg = load_config("configs/app.local.yaml")
+        with tempfile.TemporaryDirectory() as tmp:
+            store = JobStore(os.path.join(tmp, "test.db"))
+            service = CatalogService(cfg, store)
+
+            def request_json(_endpoint, method="GET", data=None):
+                return [{"type": "analysis"}], {"http_status": "HTTP 200 OK", "content_type": "application/json", "headers": {}}
+
+            service._request_json = request_json
+            service._scan_type = lambda _type_name, _errors: []
+            dashboard = service.scan()
+
+            self.assertEqual(dashboard["status"], "WARN")
+            self.assertEqual(dashboard["message"], "")
+            self.assertEqual(dashboard["supported_types"], ["analysis"])
+
     def test_analyze_acl_risk(self):
         risk = analyze_acl([{"accountDisplayName": "Authenticated User", "permissions": {"read": True, "write": True, "changePermission": False}}])
         self.assertEqual(risk["level"], "FAILED")

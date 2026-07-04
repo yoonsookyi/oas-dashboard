@@ -383,7 +383,8 @@ textarea:focus {
 .status-word { font-weight: 800; }
 .status-word.OK { color: var(--green); }
 .status-word.WARN { color: var(--amber); }
-.status-word.FAILED { color: var(--red); }
+.status-word.FAILED,
+.status-word.HIGH { color: var(--red); }
 
 .status-grid,
 .metric-grid {
@@ -406,7 +407,8 @@ textarea:focus {
 .status-card.WARN,
 .metric-card.WARN { border-color: #f2d58b; }
 .status-card.FAILED,
-.metric-card.FAILED { border-color: #f5c1c5; }
+.metric-card.FAILED,
+.metric-card.HIGH { border-color: #f5c1c5; }
 .status-card.path-card { border-color: var(--line); }
 .status-card.path-card.WARN { border-color: #f2d58b; }
 .status-card.path-card.FAILED { border-color: #f5c1c5; }
@@ -428,7 +430,8 @@ textarea:focus {
 .meter { height: 9px; border-radius: 999px; background: #e8eef5; overflow: hidden; }
 .meter span { display: block; height: 100%; border-radius: inherit; background: var(--green); }
 .metric-card.WARN .meter span { background: var(--amber); }
-.metric-card.FAILED .meter span { background: var(--red); }
+.metric-card.FAILED .meter span,
+.metric-card.HIGH .meter span { background: var(--red); }
 .metric-foot { margin-top: 8px; align-items: flex-start; color: var(--muted); font-size: 12px; }
 .metric-foot span:last-child { text-align: right; overflow-wrap: anywhere; }
 

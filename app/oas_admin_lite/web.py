@@ -302,7 +302,7 @@ def metric_status_legend():
     <div class="status-legend">
       <span><strong class="status-word OK">OK</strong> 정상 범위입니다.</span>
       <span><strong class="status-word WARN">WARN</strong> 운영자가 확인해야 할 임계치에 근접했거나 일부 조회가 제한된 상태입니다.</span>
-      <span><strong class="status-word FAILED">FAILED</strong> 실패 임계치를 넘었거나 리소스 위험도가 높은 상태입니다.</span>
+      <span><strong class="status-word HIGH">HIGH</strong> 리소스 사용률이 높은 상태입니다. 현재 성능 영향 여부는 si/so, I/O wait 등 추가 지표와 함께 확인합니다.</span>
     </div>
     """
 

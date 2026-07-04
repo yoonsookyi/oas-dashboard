@@ -147,7 +147,7 @@ def meminfo():
 
 def threshold_status(percent, warn, fail):
     if percent >= fail:
-        return "FAILED"
+        return "HIGH"
     if percent >= warn:
         return "WARN"
     return "OK"
@@ -183,18 +183,22 @@ def listener_check():
 
 
 def process_check():
-    check = command_check("OAS/OHS Processes", ["ps", "-eo", "pid,ppid,comm,args"], timeout=5)
-    if check.status != "OK":
-        return check
+    command = ["ps", "-eo", "pid,ppid,comm,args"]
     keywords = ["weblogic", "nodemanager", "node manager", "bi_server", "obis", "obips", "sawserver", "javahost", "ohs", "httpd"]
+    try:
+        proc = subprocess.run(command, universal_newlines=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=5, check=False)
+    except Exception as exc:
+        return Check("OAS/OHS Processes", "", "WARN", str(exc))
+    if proc.returncode != 0:
+        return Check("OAS/OHS Processes", proc.stdout.strip(), "WARN", " ".join(command))
     lines = []
-    for line in check.value.splitlines():
+    for line in proc.stdout.splitlines():
         lower = line.lower()
         if any(keyword in lower for keyword in keywords) and "oas_admin_lite" not in lower:
-            lines.append(line)
+            lines.append(line.strip())
     if not lines:
         return Check("OAS/OHS Processes", "OAS/OHS 관련 프로세스가 ps 결과에서 감지되지 않았습니다.", "WARN", "검색 키워드: {0}".format(", ".join(keywords)))
-    return Check("OAS/OHS Processes", "\n".join(lines[:40]), "OK", "최대 40개 행 표시")
+    return Check("OAS/OHS Processes", "\n".join(lines[:40]), "OK", "감지 {0}개, 최대 40개 행 표시".format(len(lines)))
 
 
 def command_check(name, command, timeout=5):
