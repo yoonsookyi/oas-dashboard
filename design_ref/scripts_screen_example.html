@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Scripts 화면 예시 - 1920x1200 최종안</title>
+  <style>
+    :root {
+      --ink: #172026;
+      --muted: #60717d;
+      --line: #d8e0e6;
+      --surface: #ffffff;
+      --bg: #f5f7f8;
+      --teal: #1f6f69;
+      --blue: #315fbd;
+      --red: #b23943;
+      --amber: #9a6b16;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Arial, "Malgun Gothic", sans-serif;
+      line-height: 1.45;
+    }
+    .shell { min-height: 100vh; }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 14px 28px;
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 850; }
+    .brand-mark {
+      display: inline-flex;
+      width: 38px;
+      height: 38px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 7px;
+      background: var(--ink);
+      color: #fff;
+      font-size: 13px;
+    }
+    .nav { display: flex; gap: 6px; color: var(--muted); font-size: 14px; }
+    .nav span { padding: 8px 10px; border-radius: 7px; }
+    .nav .active { background: #e8eef2; color: var(--ink); font-weight: 800; }
+    .content { padding: 14px 28px 20px; }
+    .page-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      margin: 0 auto 10px;
+      max-width: 1360px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 10px;
+    }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { margin-bottom: 5px; font-size: 25px; line-height: 1.18; }
+    .page-head p { margin: 0; color: #374955; font-size: 14px; }
+    .mode-badge { padding: 5px 9px; border: 1px solid var(--line); border-radius: 999px; color: var(--teal); font-size: 12px; font-weight: 800; background: #eef7f5; }
+    .workbench {
+      display: grid;
+      grid-template-columns: minmax(360px, 0.88fr) minmax(520px, 1.12fr);
+      gap: 12px;
+      max-width: 1360px;
+      margin: 0 auto;
+      align-items: start;
+    }
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: 0 12px 26px rgba(27, 39, 49, 0.07);
+      padding: 12px;
+    }
+    .panel-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .panel-head h2 { margin-bottom: 4px; font-size: 18px; line-height: 1.25; }
+    .muted { color: var(--muted); font-size: 12px; }
+    .script-tabs {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+      margin-bottom: 9px;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f7fafb;
+    }
+    .script-tabs button {
+      min-height: 38px;
+      border: 0;
+      border-radius: 7px;
+      background: transparent;
+      color: #34424c;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .script-tabs .active { background: #fff; color: var(--teal); box-shadow: inset 0 0 0 1px #a9d0ca; }
+    .script-path {
+      display: grid;
+      grid-template-columns: 74px minmax(0, 1fr);
+      gap: 6px;
+      margin-bottom: 10px;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #f8fafc;
+      font-size: 12px;
+    }
+    code, pre { font-family: Consolas, "Liberation Mono", monospace; }
+    .script-path code { overflow-wrap: anywhere; color: #334155; }
+    .runbook { display: grid; gap: 6px; }
+    .runbook-row {
+      display: grid;
+      gap: 4px;
+      padding: 9px 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfd;
+    }
+    .runbook-row h3 { margin: 0; font-size: 13px; color: #25323c; }
+    .runbook-row p, .runbook-row li { margin: 0; color: #3b4c57; font-size: 12px; }
+    .runbook-row ul { margin: 0; padding-left: 18px; }
+    .runbook-row pre {
+      margin: 0;
+      padding: 8px;
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #24323b;
+      font-size: 12px;
+    }
+    .runbook-row.warn { border-color: #f2c9a2; background: #fff8f0; }
+    .danger-tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      padding: 4px 9px;
+      border: 1px solid #f0bcc1;
+      border-radius: 999px;
+      background: #fff1f2;
+      color: #982d36;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .step-form { display: grid; gap: 10px; }
+    .step {
+      display: grid;
+      gap: 10px;
+      padding: 11px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+    .step-head { display: grid; grid-template-columns: 28px 1fr; gap: 9px; align-items: start; }
+    .step-number {
+      display: inline-flex;
+      width: 28px;
+      height: 28px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      background: var(--teal);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 850;
+    }
+    .step h3 { margin-bottom: 4px; font-size: 14px; }
+    .step p { margin: 0; color: #3b4c57; font-size: 12px; }
+    .field-grid { display: grid; grid-template-columns: minmax(140px, 1fr) minmax(0, 2fr); gap: 10px; }
+    label { display: grid; gap: 5px; color: #334155; font-size: 13px; font-weight: 800; }
+    .full { grid-column: 1 / -1; }
+    input, textarea {
+      width: 100%;
+      min-height: 38px;
+      padding: 8px 10px;
+      border: 1px solid #b8c6cf;
+      border-radius: 7px;
+      background: #fff;
+      color: var(--ink);
+      font: inherit;
+      font-size: 13px;
+    }
+    textarea { min-height: 72px; resize: vertical; font-family: Consolas, "Liberation Mono", monospace; font-size: 12px; }
+    .preview { border-color: #b8d8d4; background: #fbfefe; }
+    .execute { border-color: #eeb4ba; background: #fff8f8; }
+    .actions { display: flex; gap: 6px; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 38px;
+      padding: 8px 13px;
+      border-radius: 7px;
+      border: 1px solid #aebbc5;
+      background: #fff;
+      color: var(--ink);
+      font-weight: 850;
+    }
+    .btn.danger { border-color: var(--red); background: var(--red); color: #fff; }
+    .result-lite {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding-top: 8px;
+      border-top: 1px dashed #e2c1c5;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .link { color: var(--blue); font-weight: 800; }
+    @media (max-width: 1040px) { .workbench { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">OAS</span><span>Admin Lite</span></div>
+      <nav class="nav"><span>Resources</span><span>Catalog</span><span>Patch</span><span class="active">Scripts</span><span>Jobs / Audit</span><span>Settings</span></nav>
+    </header>
+    <main class="content">
+      <header class="page-head">
+        <div>
+          <h1>Scripts</h1>
+          <p>OAS 담당자가 추출/진단 스크립트의 파라미터를 입력하고, 실행 명령어를 확인한 뒤 실제 실행합니다. 1920x1200 화면에서 스크롤 없이 보이도록 압축한 최종 예시입니다.</p>
+        </div>
+        <span class="mode-badge">Local Mode</span>
+      </header>
+
+      <div class="workbench">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>환경 메타데이터 BAR 내보내기</h2>
+              <p class="muted">선택한 작업의 실행 기준과 주의사항</p>
+            </div>
+            <span class="danger-tag">exportarchive.sh</span>
+          </div>
+
+          <div class="script-tabs" aria-label="작업 선택">
+            <button class="active" type="button">BAR 내보내기</button>
+            <button type="button">진단 번들</button>
+          </div>
+
+          <div class="script-path"><span class="muted">실행 위치</span><code>$DOMAIN_HOME/bitools/bin</code></div>
+
+          <div class="runbook">
+            <section class="runbook-row"><h3>목적</h3><p>서비스 인스턴스의 catalog, security, model 산출물을 BAR 파일로 추출해 백업 또는 이관에 사용합니다.</p></section>
+            <section class="runbook-row"><h3>실행 구문 형식</h3><pre>exportarchive.sh &lt;service instance key&gt; &lt;export directory&gt; {optional parameters}</pre></section>
+            <section class="runbook-row"><h3>필수 파라미터</h3><ul><li>Service instance key</li><li>Export directory</li><li>Encryption password(stdin)</li></ul></section>
+            <section class="runbook-row"><h3>옵션 파라미터</h3><ul><li>includedata</li><li>nouserfolders</li><li>noconnectionparams</li><li>advancedoptions=&lt;path&gt;</li></ul></section>
+            <section class="runbook-row warn"><h3>주의사항</h3><ul><li>암호는 명령어 이력에 남기지 않고 stdin으로만 전달합니다.</li><li>옵션은 exportarchive.sh help에 표시된 값만 입력합니다.</li></ul></section>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>실행 단계</h2>
+              <p class="muted">입력 → 명령어 확인 → 실행</p>
+            </div>
+            <span class="danger-tag">실제 실행 주의</span>
+          </div>
+
+          <form class="step-form">
+            <section class="step">
+              <div class="step-head"><span class="step-number">1</span><div><h3>파라미터 입력</h3><p>필수 값과 선택 옵션을 입력한 뒤 실행될 명령어를 확인합니다.</p></div></div>
+              <div class="field-grid">
+                <label>Service instance key<input value="ssi"></label>
+                <label>Export directory<input value="/u01/oas-admin-lite/backups/export-20260706"></label>
+                <label class="full">Optional parameters<input value="includedata noconnectionparams"></label>
+                <label class="full">Encryption password(stdin)<input type="password" value="password"></label>
+              </div>
+              <div class="actions"><span class="btn">입력 완료(명령어 확인)</span></div>
+            </section>
+
+            <section class="step command">
+              <div class="step-head"><span class="step-number">2</span><div><h3>명령어 확인 및 실행</h3><p>쉘 스크립트와 입력 파라미터가 합쳐진 명령어를 확인한 뒤 실행합니다.</p></div></div>
+              <label class="full">쉘 스크립트 + 파라미터<textarea readonly>$DOMAIN_HOME/bitools/bin/exportarchive.sh ssi /u01/oas-admin-lite/backups/export-20260706 includedata noconnectionparams</textarea></label>
+              <div class="actions"><span class="btn danger">실행</span></div>
+              <div class="result-lite"><span>최근 실행 결과 없음</span><span class="link">Jobs / Audit에서 상세 보기</span></div>
+            </section>
+          </form>
+        </section>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

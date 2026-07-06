@@ -602,23 +602,37 @@ textarea:focus {
 
 .script-picker-head {
   align-items: flex-start;
+  margin-bottom: 10px;
 }
-.mono-path {
-  max-width: 46%;
-  overflow-wrap: anywhere;
-  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+.script-bin-path {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  margin: 8px 0 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #f8fafc;
+  color: var(--muted);
   font-size: 12px;
+}
+.script-bin-path code {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: #334155;
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
 }
 .script-picker {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 8px;
 }
 .script-option {
   display: grid;
   justify-items: start;
-  min-height: 86px;
-  padding: 14px;
+  min-height: 58px;
+  padding: 10px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface);
@@ -633,34 +647,36 @@ textarea:focus {
   color: var(--ink);
 }
 .script-option strong {
-  font-size: 15px;
-  line-height: 1.35;
+  font-size: 13px;
+  line-height: 1.3;
 }
 .script-option span {
   align-self: end;
   color: var(--muted);
   font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
-  font-size: 12px;
+  font-size: 11px;
 }
 .script-workbench {
   display: grid;
-  grid-template-columns: minmax(320px, 0.9fr) minmax(420px, 1.15fr);
-  gap: 16px;
+  grid-template-columns: minmax(340px, 0.9fr) minmax(480px, 1.1fr);
+  gap: 14px;
   max-width: var(--content-max);
   margin: 0 auto;
   align-items: start;
 }
 .script-info-panel,
 .script-run-panel {
+  width: 100%;
   margin-left: 0;
   margin-right: 0;
+  padding: 14px;
 }
 .script-brief {
   display: grid;
-  gap: 12px;
+  gap: 8px;
 }
 .script-info-block {
-  padding: 13px 14px;
+  padding: 10px 11px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface-alt);
@@ -668,23 +684,24 @@ textarea:focus {
 .script-info-block h3,
 .script-step h3,
 .script-result h3 {
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   color: #25323c;
+  font-size: 14px;
 }
 .script-info-block p,
 .script-step p,
 .script-result p {
   margin-bottom: 0;
   color: #3b4c57;
-  font-size: 13px;
-  line-height: 1.55;
+  font-size: 12px;
+  line-height: 1.42;
 }
 .script-info-block ul {
   margin: 0;
   padding-left: 18px;
   color: #3b4c57;
-  font-size: 13px;
-  line-height: 1.55;
+  font-size: 12px;
+  line-height: 1.42;
 }
 .script-info-block.caution {
   border-color: #f2c9a2;
@@ -692,7 +709,8 @@ textarea:focus {
 }
 .script-info-block pre {
   margin: 0;
-  padding: 10px;
+  padding: 8px;
+  overflow-x: auto;
   border: 1px solid var(--line);
   border-radius: 6px;
   background: #ffffff;
@@ -706,47 +724,48 @@ textarea:focus {
 }
 .script-exec-form {
   display: grid;
-  gap: 14px;
+  gap: 10px;
   min-width: 0;
 }
 .script-step {
   display: grid;
-  gap: 12px;
-  padding: 14px;
+  gap: 10px;
+  padding: 11px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #ffffff;
 }
 .script-step-head {
   display: grid;
-  grid-template-columns: 30px 1fr;
-  gap: 10px;
+  grid-template-columns: 28px 1fr;
+  gap: 9px;
   align-items: start;
 }
 .step-number {
   display: inline-flex;
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   align-items: center;
   justify-content: center;
   border-radius: 999px;
   background: #1f6f69;
   color: #ffffff;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 850;
 }
 .preview-step {
   border-color: #b8d8d4;
   background: #fbfefe;
 }
-.execute-step {
+.execute-step,
+.command-step {
   border-color: #eeb4ba;
   background: #fff8f8;
 }
 .script-form-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: minmax(140px, 1fr) minmax(0, 2fr);
+  gap: 10px;
 }
 .script-form-grid .full,
 .script-exec-form .full {
@@ -757,37 +776,137 @@ textarea:focus {
   color: var(--muted);
   font-size: 12px;
   font-weight: 500;
-  line-height: 1.45;
+  line-height: 1.35;
 }
 .form-help { margin: -4px 0 4px; }
 .command-preview textarea {
-  min-height: 92px;
+  min-height: 72px;
   background: #f8fafc;
   font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
   font-size: 12px;
-  line-height: 1.45;
+  line-height: 1.4;
   white-space: pre;
 }
+.script-run-panel .actions {
+  margin: 0;
+}
+.script-run-actions {
+  justify-content: flex-end;
+}
 .script-run-panel .result {
-  margin-top: 4px;
+  margin-top: 0;
+  padding-top: 10px;
 }
 .script-result.empty {
   border-style: dashed;
 }
 
 @media (max-width: 1180px) {
-  .script-picker { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .script-workbench { grid-template-columns: 1fr; }
-  .mono-path { max-width: 100%; }
 }
 
 @media (max-width: 620px) {
   .script-picker,
-  .script-form-grid { grid-template-columns: 1fr; }
+  .script-form-grid,
+  .script-bin-path { grid-template-columns: 1fr; }
   .script-step-head { grid-template-columns: 28px 1fr; }
   .step-number { width: 28px; height: 28px; }
 }
 
+.content-scripts {
+  padding-top: 14px;
+  padding-bottom: 20px;
+}
+.content-scripts .page-header {
+  margin-bottom: 10px;
+  padding: 8px 0 10px;
+}
+.content-scripts h1 {
+  margin-bottom: 3px;
+  font-size: 25px;
+}
+.content-scripts .page-description {
+  margin-bottom: 0;
+  line-height: 1.35;
+}
+.content-scripts .panel-head {
+  margin-bottom: 8px;
+}
+.content-scripts .script-info-panel,
+.content-scripts .script-run-panel {
+  padding: 12px;
+}
+.content-scripts .script-picker {
+  gap: 6px;
+}
+.content-scripts .script-option {
+  min-height: 50px;
+  padding: 8px 9px;
+}
+.content-scripts .script-bin-path {
+  margin: 6px 0 8px;
+  padding: 6px 9px;
+}
+.content-scripts .script-brief {
+  gap: 6px;
+}
+.content-scripts .script-info-block {
+  padding: 8px 10px;
+}
+.content-scripts .script-info-block h3,
+.content-scripts .script-step h3,
+.content-scripts .script-result h3 {
+  margin-bottom: 3px;
+  font-size: 13px;
+}
+.content-scripts .script-info-block p,
+.content-scripts .script-step p,
+.content-scripts .script-result p,
+.content-scripts .script-info-block ul {
+  font-size: 12px;
+  line-height: 1.34;
+}
+.content-scripts .script-info-block pre {
+  padding: 6px 8px;
+  font-size: 11px;
+}
+.content-scripts .script-exec-form {
+  gap: 8px;
+}
+.content-scripts .script-step {
+  gap: 8px;
+  padding: 9px 10px;
+}
+.content-scripts .script-step-head {
+  grid-template-columns: 26px 1fr;
+  gap: 8px;
+}
+.content-scripts .step-number {
+  width: 26px;
+  height: 26px;
+}
+.content-scripts .script-form-grid {
+  gap: 8px;
+}
+.content-scripts label {
+  gap: 4px;
+}
+.content-scripts input,
+.content-scripts textarea {
+  min-height: 36px;
+  padding: 7px 9px;
+}
+.content-scripts .command-preview textarea {
+  min-height: 58px;
+}
+.content-scripts .script-result.empty {
+  padding-top: 8px;
+}
+.content-scripts .script-result.empty p {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 @media (hover: hover) {
   .panel:hover { border-color: #c8d4de; }
   .script-option:hover { transform: translateY(-1px); }

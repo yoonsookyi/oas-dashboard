@@ -103,14 +103,20 @@ class ConfigTests(unittest.TestCase):
             ctx.scripts.preview("diagnostic_dump.sh", "/u01/oas-admin-lite/bundles/test.zip")
             html = scripts_page(ctx, {"script": ["diagnostic_dump.sh"]})
 
-            self.assertIn("작업 목적", html)
-            self.assertIn("필수 입력", html)
-            self.assertIn("명령어 미리보기", html)
-            self.assertIn("미리보기 생성 - 실행 안 함", html)
-            self.assertIn("실제 실행 - OAS 서버에서 스크립트 실행", html)
+            self.assertIn("content-scripts", html)
+            self.assertIn("목적", html)
+            self.assertIn("실행 구문 형식", html)
+            self.assertIn("필수 파라미터", html)
+            self.assertIn("옵션 파라미터", html)
+            self.assertIn("파라미터 입력", html)
+            self.assertIn("입력 완료(명령어 확인)", html)
+            self.assertIn("명령어 확인 및 실행", html)
+            self.assertIn("쉘 스크립트 + 파라미터", html)
+            self.assertIn(">실행</button>", html)
             self.assertIn("최근 실제 실행 결과", html)
             self.assertIn("미리보기로 생성된 명령어입니다", html)
             self.assertNotIn("명령어 미리보기만 생성했습니다", html)
+            self.assertNotIn("<span class=\"step-number\">3</span>", html)
 
 
     def test_catalog_dashboard_summary(self):

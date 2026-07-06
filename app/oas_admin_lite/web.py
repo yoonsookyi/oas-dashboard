@@ -179,6 +179,7 @@ SCRIPT_ACTIONS = [
         "method": "exportarchive.sh <service instance key> <export directory> {optional parameters}",
         "purpose": "서비스 인스턴스의 환경 메타데이터를 BAR 파일로 내보내 이관, 백업, 비교 작업에 사용할 수 있게 합니다.",
         "required": ["Service instance key", "Export directory", "Encryption password(stdin)"],
+        "optional": ["noconnectionparams", "nouserfolders", "includedata", "advancedoptions=<path> 등 exportarchive.sh help 기준 옵션"],
         "result": "/u01/oas-admin-lite/backups 하위 export directory에 BAR 내보내기 결과가 생성됩니다. 실행 로그와 exit code는 Jobs / Audit에서 확인합니다.",
         "cautions": [
             "Encryption password는 명령줄 인자로 저장하지 않고 stdin으로만 전달합니다.",
@@ -193,6 +194,7 @@ SCRIPT_ACTIONS = [
         "method": "diagnostic_dump.sh <zip file name>",
         "purpose": "Oracle Support 또는 Development 조직에 제공할 OAS 진단 번들 ZIP을 수집합니다.",
         "required": ["ZIP file name"],
+        "optional": ["없음"],
         "result": "/u01/oas-admin-lite/bundles 하위에 진단 ZIP이 생성됩니다. stdout/stderr, exit code, 진단 로그 경로는 Jobs / Audit에서 확인합니다.",
         "cautions": [
             "진단 번들은 환경 및 보안 설정 정보를 포함할 수 있으므로 공유 대상을 제한합니다.",
@@ -206,7 +208,7 @@ PAGE_DESCRIPTIONS = {
     "resources": "OAS 서버의 CPU, Memory, Swap, /u01 Disk, Listener, Process 상태를 확인합니다. OAS/OHS 경로 설정값은 Settings에서 확인합니다.",
     "catalog": "OAS REST API 수집 결과로 카탈로그 유형, 소유자, 변경일, 폴더 구조, ACL 리스크를 확인합니다.",
     "patch": "현재 ORACLE_HOME의 OPatch inventory를 조회해 설치된 패치 레벨을 확인합니다. 이 화면은 조회 전용이며 패치를 적용하지 않습니다.",
-    "scripts": "운영자가 허용된 OAS 스크립트를 단계별로 실행합니다. 미리보기는 명령어 생성만 수행하고, 실제 실행은 서버에서 스크립트를 실행해 Jobs / Audit에 결과를 남깁니다.",
+    "scripts": "OAS 담당자가 주요 운영 스크립트를 선택하고 명령어 확인, 실행, 결과 이력까지 한 화면에서 관리합니다.",
     "jobs": "Catalog 수집, OPatch, OAS 스크립트 실행 이력을 조회합니다. 명령, 결과, 메시지를 audit trail로 확인합니다.",
     "settings": "OAS, OHS, 모니터링 웹앱 설정값을 구분해 조회 전용으로 표시합니다. 값 변경은 app.yaml 또는 환경변수에서 수행합니다.",
 }
@@ -243,7 +245,7 @@ def layout(ctx, title, active, content, query):
       <nav class="main-nav" aria-label="주요 메뉴">{nav}</nav>
       <div class="top-actions"><span class="status-pill">{auth}</span></div>
     </header>
-    <main class="content">
+    <main class="content content-{active}">
       <header class="page-header">
         <div>
           <h1>{title}</h1>
@@ -255,7 +257,7 @@ def layout(ctx, title, active, content, query):
     </main>
   </div>
 </body>
-</html>""".format(title=esc(title), nav=nav(active), description=esc(description), auth="Auth Enabled" if auth_enabled else "Local Mode", notice=notice, content=content)
+</html>""".format(title=esc(title), nav=nav(active), description=esc(description), auth="Auth Enabled" if auth_enabled else "Local Mode", notice=notice, content=content, active=esc(active))
 
 
 def nav(active):
@@ -532,16 +534,14 @@ def scripts_page(ctx, query):
     last_job_type = state.get("last_job_type", "")
     recent_output = state.get("last_output", "") if command and last_job_type == "script_run" else ""
     content = """
-<section class="panel">
-  <div class="panel-head script-picker-head">
-    <div><h2>작업 선택</h2><p class="muted">OAS 서버에서 수행할 운영 작업을 선택합니다. 허용 목록에 있는 스크립트만 표시됩니다.</p></div>
-    <span class="muted mono-path">{bitools}</span>
-  </div>
-  {picker}
-</section>
 <div class="script-workbench">
   <section class="panel script-info-panel">
-    <div class="panel-head"><h2>{label}</h2><span class="tag">{script}</span></div>
+    <div class="panel-head script-picker-head">
+      <div><h2>{label}</h2><p class="muted">OAS 운영에 필요한 스크립트를 선택하고 실행 기준을 확인합니다.</p></div>
+      <span class="tag">{script}</span>
+    </div>
+    {picker}
+    <div class="script-bin-path"><span>bitools/bin</span><code>{bitools}</code></div>
     {brief}
   </section>
   <section class="panel script-run-panel">
@@ -550,17 +550,14 @@ def scripts_page(ctx, query):
       <input type="hidden" name="script" value="{script}">
       <input type="hidden" name="arg_mode" value="{mode}">
       <section class="script-step input-step">
-        <div class="script-step-head"><span class="step-number">1</span><div><h3>입력</h3><p>필수 값과 선택 옵션을 입력합니다. 이 단계에서는 서버 명령이 실행되지 않습니다.</p></div></div>
+        <div class="script-step-head"><span class="step-number">1</span><div><h3>파라미터 입력</h3><p>필수 값과 선택 옵션을 입력한 뒤 실행될 명령어를 확인합니다.</p></div></div>
         <div class="script-form-grid">{fields}</div>
+        <div class="actions"><button formaction="/scripts/preview" type="submit" class="secondary">입력 완료(명령어 확인)</button></div>
       </section>
-      <section class="script-step preview-step">
-        <div class="script-step-head"><span class="step-number">2</span><div><h3>명령어 미리보기</h3><p>입력값으로 생성될 명령어만 확인합니다. OAS 스크립트는 실행하지 않습니다.</p></div></div>
-        <div class="actions"><button formaction="/scripts/preview" type="submit" class="secondary">미리보기 생성 - 실행 안 함</button></div>
+      <section class="script-step command-step">
+        <div class="script-step-head"><span class="step-number">2</span><div><h3>명령어 확인 및 실행</h3><p>쉘 스크립트와 입력 파라미터가 합쳐진 명령어를 확인한 뒤 실행합니다.</p></div></div>
         {command_box}
-      </section>
-      <section class="script-step execute-step">
-        <div class="script-step-head"><span class="step-number">3</span><div><h3>실제 실행</h3><p>현재 입력값으로 OAS 서버에서 스크립트를 실행하고 stdout/stderr, exit code, 로그 경로를 Jobs / Audit에 저장합니다.</p></div></div>
-        <button formaction="/scripts/run" type="submit" class="danger">실제 실행 - OAS 서버에서 스크립트 실행</button>
+        <div class="actions script-run-actions"><button formaction="/scripts/run" type="submit" class="danger">실행</button></div>
         {recent_result}
       </section>
     </form>
@@ -620,21 +617,19 @@ def script_last_command(state, script):
 def script_brief(action):
     return """
     <div class="script-brief">
-      <section class="script-info-block"><h3>작업 목적</h3><p>{purpose}</p></section>
-      <section class="script-info-block"><h3>필수 입력</h3>{required}</section>
-      <section class="script-info-block"><h3>결과</h3><p>{result}</p></section>
+      <section class="script-info-block"><h3>목적</h3><p>{purpose}</p></section>
+      <section class="script-info-block"><h3>실행 구문 형식</h3><pre>{method}</pre></section>
+      <section class="script-info-block"><h3>필수 파라미터</h3>{required}</section>
+      <section class="script-info-block"><h3>옵션 파라미터</h3>{optional}</section>
       <section class="script-info-block caution"><h3>주의사항</h3>{cautions}</section>
-      <section class="script-info-block"><h3>기본 명령 형식</h3><pre>{method}</pre></section>
     </div>
     """.format(
         purpose=esc(action.get("purpose", "")),
-        required=script_list(action.get("required") or []),
-        result=esc(action.get("result", "")),
-        cautions=script_list(action.get("cautions") or []),
         method=esc(action.get("method", "")),
+        required=script_list(action.get("required") or []),
+        optional=script_list(action.get("optional") or []),
+        cautions=script_list(action.get("cautions") or []),
     )
-
-
 def script_list(items):
     if not items:
         return '<p class="muted">-</p>'
@@ -643,17 +638,17 @@ def script_list(items):
 
 def script_command_box(command, last_job_type=""):
     if last_job_type == "script_run":
-        help_text = "최근 실제 실행에 사용한 명령어입니다. 입력값을 바꾸면 2단계에서 다시 미리보기를 생성해 확인하세요."
+        help_text = "최근 실제 실행에 사용한 명령어입니다. 입력값을 바꾸면 1단계에서 다시 입력 완료(명령어 확인)를 눌러 확인하세요."
     elif command:
         help_text = "미리보기로 생성된 명령어입니다. 이 단계에서는 서버에서 실행하지 않았습니다."
     else:
-        help_text = "2단계의 미리보기 버튼을 누르면 생성될 명령어가 여기에 표시됩니다."
-    return '<label class="full command-preview">생성된 명령어<textarea readonly placeholder="미리보기 생성 - 실행 안 함 버튼을 누르면 여기에 표시됩니다.">{0}</textarea><span class="field-help">{1}</span></label>'.format(esc(command), esc(help_text))
+        help_text = "1단계의 입력 완료(명령어 확인) 버튼을 누르면 쉘 스크립트와 파라미터가 합쳐진 명령어가 표시됩니다."
+    return '<label class="full command-preview">쉘 스크립트 + 파라미터<textarea readonly placeholder="명령어 확인 버튼을 누르면 실행될 명령어가 여기에 표시됩니다.">{0}</textarea><span class="field-help">{1}</span></label>'.format(esc(command), esc(help_text))
 
 
 def script_recent_result(output):
     if not output:
-        return '<div class="result script-result empty"><h3>최근 실제 실행 결과</h3><p class="muted">아직 실제 실행 결과가 없습니다. 3단계 버튼을 누른 뒤 stdout/stderr와 exit code를 확인하세요.</p></div>'
+        return '<div class="result script-result empty"><h3>최근 실제 실행 결과</h3><p class="muted">아직 실제 실행 결과가 없습니다. 2단계에서 실행한 뒤 stdout/stderr와 exit code를 확인하세요.</p></div>'
     return '<div class="result script-result"><h3>최근 실제 실행 결과</h3><pre>{0}</pre></div>'.format(esc(output))
 
 def script_picker(actions, selected):
@@ -668,8 +663,8 @@ def script_fields(action, values=None):
     values = values or {}
     if action["mode"] == "exportarchive":
         return """
-        <label>Service instance key<input name="service_instance" value="{service_instance}" placeholder="ssi"></label>
-        <label>Export directory<input name="export_dir" value="{export_dir}" placeholder="/u01/oas-admin-lite/backups/export"></label>
+        <label class="service-instance-field">Service instance key<input name="service_instance" value="{service_instance}" placeholder="ssi"></label>
+        <label class="export-dir-field">Export directory<input name="export_dir" value="{export_dir}" placeholder="/u01/oas-admin-lite/backups/export"></label>
         <label class="full">Optional parameters<input name="export_options" value="{export_options}" placeholder="noconnectionparams nouserfolders includedata advancedoptions=/path/options.json"></label>
         <label class="full">Encryption password(stdin, 명령어에 저장 안 함)<input type="password" name="stdin_text" autocomplete="new-password" placeholder="실제 실행 시 stdin으로만 전달됩니다"></label>
         """.format(service_instance=esc(values.get("service_instance", "")), export_dir=esc(values.get("export_dir", "")), export_options=esc(values.get("export_options", "")))
