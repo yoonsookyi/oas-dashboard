@@ -798,7 +798,7 @@ textarea:focus {
   padding-top: 10px;
 }
 .script-result.empty {
-  border-style: dashed;
+  border-top-style: solid;
 }
 
 @media (max-width: 1180px) {
