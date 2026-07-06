@@ -1,5 +1,6 @@
 import os
 import shlex
+import threading
 import time
 
 from .command import run_command, run_shell_command, truncate
@@ -36,6 +37,7 @@ class ScriptService(object):
         self.cfg = cfg
         self.store = store
         self.state = ScriptState(cfg.oas.bitools_bin, allowed_scripts(cfg.scripts.allowed))
+        self._run_lock = threading.Lock()
 
     def state_dict(self):
         saved = self.store.get_json("script_state", {})
@@ -54,29 +56,33 @@ class ScriptService(object):
         self._record("script_command_check", command, "SUCCESS", 0, output, time.time(), time.time(), "", stdin_label)
 
     def run(self, script, raw_args, stdin_text="", stdin_label=""):
-        command = self._command(script, raw_args)
-        if stdin_label:
-            command_text = self._command_text(command, stdin_label)
-            result = run_shell_command(
-                command_text,
-                cwd=self.cfg.oas.bitools_bin,
-                timeout=3600,
-                log_dir=os.path.join(self.cfg.paths.log_dir, "jobs"),
-            )
-            self._record_text("script_run", command_text, result.status, result.exit_code, result.output, result.started_at, result.ended_at, result.log_path)
-        else:
-            input_text = self._stdin_payload(stdin_text)
-            result = run_command(
-                command,
-                cwd=self.cfg.oas.bitools_bin,
-                timeout=3600,
-                log_dir=os.path.join(self.cfg.paths.log_dir, "jobs"),
-                input_text=input_text,
-            )
-            self._record("script_run", result.command, result.status, result.exit_code, result.output, result.started_at, result.ended_at, result.log_path)
-        if result.status != "SUCCESS":
-            raise RuntimeError(result.output or "script execution failed")
-
+        if not self._run_lock.acquire(False):
+            raise RuntimeError("다른 OAS 스크립트가 실행 중입니다. 완료 후 다시 실행하세요.")
+        try:
+            command = self._command(script, raw_args)
+            if stdin_label:
+                command_text = self._command_text(command, stdin_label)
+                result = run_shell_command(
+                    command_text,
+                    cwd=self.cfg.oas.bitools_bin,
+                    timeout=3600,
+                    log_dir=os.path.join(self.cfg.paths.log_dir, "jobs"),
+                )
+                self._record_text("script_run", command_text, result.status, result.exit_code, result.output, result.started_at, result.ended_at, result.log_path)
+            else:
+                input_text = self._stdin_payload(stdin_text)
+                result = run_command(
+                    command,
+                    cwd=self.cfg.oas.bitools_bin,
+                    timeout=3600,
+                    log_dir=os.path.join(self.cfg.paths.log_dir, "jobs"),
+                    input_text=input_text,
+                )
+                self._record("script_run", result.command, result.status, result.exit_code, result.output, result.started_at, result.ended_at, result.log_path)
+            if result.status != "SUCCESS":
+                raise RuntimeError(result.output or "script execution failed")
+        finally:
+            self._run_lock.release()
     def _command(self, script, raw_args):
         script = (script or "").strip()
         if script in BLOCKED_SCRIPTS:

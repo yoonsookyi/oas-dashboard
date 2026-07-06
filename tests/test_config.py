@@ -48,6 +48,20 @@ class ConfigTests(unittest.TestCase):
                 service.preview("importarchive.sh", "")
 
 
+
+    def test_script_run_rejects_concurrent_execution(self):
+        cfg = load_config("configs/app.local.yaml")
+        with tempfile.TemporaryDirectory() as tmp:
+            store = JobStore(os.path.join(tmp, "test.db"))
+            service = ScriptService(cfg, store)
+            service._run_lock.acquire()
+            try:
+                with self.assertRaises(RuntimeError) as err:
+                    service.run("diagnostic_dump.sh", "/u01/oas-admin-lite/bundles/test.zip")
+            finally:
+                service._run_lock.release()
+            self.assertIn("실행 중", str(err.exception))
+
     def test_diagnostic_dump_form_uses_zip_file_name(self):
         script, args, stdin_text, stdin_label = script_request({
             "script": ["diagnostic_dump.sh"],
@@ -144,6 +158,8 @@ class ConfigTests(unittest.TestCase):
             self.assertIn("쉘 스크립트 + 파라미터", html)
             self.assertIn(">실행</button>", html)
             self.assertIn("최근 실제 실행 결과", html)
+            self.assertIn("data-script-running-status", html)
+            self.assertIn("실행 중...", html)
             self.assertIn("미리보기로 생성된 명령어입니다", html)
             self.assertNotIn("명령어 미리보기만 생성했습니다", html)
             self.assertNotIn("<span class=\"step-number\">3</span>", html)

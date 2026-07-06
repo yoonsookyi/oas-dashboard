@@ -45,6 +45,8 @@ def make_handler(ctx):
                 self._redirect("/resources")
             elif path == "/static/app.css":
                 self._static_css()
+            elif path == "/static/app.js":
+                self._static_js()
             elif path == "/dashboard":
                 self._redirect("/resources")
             elif path == "/resources":
@@ -111,15 +113,20 @@ def make_handler(ctx):
             self.wfile.write(payload)
 
         def _static_css(self):
-            path = os.path.join(os.path.dirname(__file__), "static", "app.css")
+            self._static_file("app.css", "text/css; charset=utf-8")
+
+        def _static_js(self):
+            self._static_file("app.js", "application/javascript; charset=utf-8")
+
+        def _static_file(self, filename, content_type):
+            path = os.path.join(os.path.dirname(__file__), "static", filename)
             with open(path, "rb") as f:
                 data = f.read()
             self.send_response(HTTPStatus.OK)
-            self.send_header("Content-Type", "text/css; charset=utf-8")
+            self.send_header("Content-Type", content_type)
             self.send_header("Content-Length", str(len(data)))
             self.end_headers()
             self.wfile.write(data)
-
         def _redirect(self, path):
             self.send_response(HTTPStatus.SEE_OTHER)
             self.send_header("Location", path)
@@ -231,6 +238,7 @@ def layout(ctx, title, active, content, query):
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{title} - OAS Admin Lite</title>
   <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/app.js" defer></script>
 </head>
 <body>
   <div class="shell">
@@ -557,7 +565,8 @@ def scripts_page(ctx, query):
       <section class="script-step command-step">
         <div class="script-step-head"><span class="step-number">2</span><div><h3>명령어 확인 및 실행</h3><p>쉘 스크립트와 입력 파라미터가 합쳐진 명령어를 확인한 뒤 실행합니다.</p></div></div>
         {command_box}
-        <div class="actions script-run-actions"><button formaction="/scripts/run" type="submit" class="danger">실행</button></div>
+        <div class="actions script-run-actions"><button formaction="/scripts/run" type="submit" class="danger" data-running-label="실행 중...">실행</button></div>
+        <div class="script-running-status" data-script-running-status role="status" aria-live="polite" hidden>스크립트를 실행 중입니다. 완료될 때까지 기다려 주세요.</div>
         {recent_result}
       </section>
     </form>
