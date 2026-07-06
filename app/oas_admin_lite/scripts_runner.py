@@ -2,7 +2,7 @@ import os
 import shlex
 import time
 
-from .command import run_command, truncate
+from .command import run_command, run_shell_command, truncate
 from .storage import Job
 
 
@@ -48,22 +48,32 @@ class ScriptService(object):
             data["last_job_type"] = saved.get("last_job_type", data["last_job_type"])
         return data
 
-    def preview(self, script, raw_args, stdin_text=""):
+    def preview(self, script, raw_args, stdin_text="", stdin_label=""):
         command = self._command(script, raw_args)
         output = "명령어 미리보기만 생성했습니다. OAS 스크립트는 실행하지 않았습니다."
-        self._record("script_command_check", command, "SUCCESS", 0, output, time.time(), time.time(), "")
+        self._record("script_command_check", command, "SUCCESS", 0, output, time.time(), time.time(), "", stdin_label)
 
-    def run(self, script, raw_args, stdin_text=""):
+    def run(self, script, raw_args, stdin_text="", stdin_label=""):
         command = self._command(script, raw_args)
-        input_text = self._stdin_payload(stdin_text)
-        result = run_command(
-            command,
-            cwd=self.cfg.oas.bitools_bin,
-            timeout=3600,
-            log_dir=os.path.join(self.cfg.paths.log_dir, "jobs"),
-            input_text=input_text,
-        )
-        self._record("script_run", result.command, result.status, result.exit_code, result.output, result.started_at, result.ended_at, result.log_path)
+        if stdin_label:
+            command_text = self._command_text(command, stdin_label)
+            result = run_shell_command(
+                command_text,
+                cwd=self.cfg.oas.bitools_bin,
+                timeout=3600,
+                log_dir=os.path.join(self.cfg.paths.log_dir, "jobs"),
+            )
+            self._record_text("script_run", command_text, result.status, result.exit_code, result.output, result.started_at, result.ended_at, result.log_path)
+        else:
+            input_text = self._stdin_payload(stdin_text)
+            result = run_command(
+                command,
+                cwd=self.cfg.oas.bitools_bin,
+                timeout=3600,
+                log_dir=os.path.join(self.cfg.paths.log_dir, "jobs"),
+                input_text=input_text,
+            )
+            self._record("script_run", result.command, result.status, result.exit_code, result.output, result.started_at, result.ended_at, result.log_path)
         if result.status != "SUCCESS":
             raise RuntimeError(result.output or "script execution failed")
 
@@ -86,8 +96,16 @@ class ScriptService(object):
             return stdin_text
         return stdin_text + "\n"
 
-    def _record(self, job_type, command, status, exit_code, output, started, ended, log_path):
+    def _command_text(self, command, stdin_label=""):
         command_text = " ".join(shlex.quote(item) for item in command)
+        if stdin_label:
+            command_text = "{0} < {1}".format(command_text, shlex.quote(stdin_label))
+        return command_text
+
+    def _record(self, job_type, command, status, exit_code, output, started, ended, log_path, stdin_label=""):
+        self._record_text(job_type, self._command_text(command, stdin_label), status, exit_code, output, started, ended, log_path)
+
+    def _record_text(self, job_type, command_text, status, exit_code, output, started, ended, log_path):
         state = self.state.to_dict()
         state["last_command"] = command_text
         state["last_output"] = output

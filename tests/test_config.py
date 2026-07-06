@@ -49,7 +49,7 @@ class ConfigTests(unittest.TestCase):
 
 
     def test_diagnostic_dump_form_uses_zip_file_name(self):
-        script, args, stdin_text = script_request({
+        script, args, stdin_text, stdin_label = script_request({
             "script": ["diagnostic_dump.sh"],
             "arg_mode": ["diagnostic"],
             "diagnostic_zip": ["/u01/oas-admin-lite/bundles/aa.zip"],
@@ -57,9 +57,36 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(script, "diagnostic_dump.sh")
         self.assertEqual(args, "/u01/oas-admin-lite/bundles/aa.zip")
         self.assertEqual(stdin_text, "")
+        self.assertEqual(stdin_label, "")
         with self.assertRaises(ValueError):
             script_request({"script": ["diagnostic_dump.sh"], "arg_mode": ["diagnostic"]})
 
+
+    def test_exportarchive_uses_password_file_path_without_reading_it(self):
+        script, args, stdin_text, stdin_label = script_request({
+            "script": ["exportarchive.sh"],
+            "arg_mode": ["exportarchive"],
+            "service_instance": ["bootstrap"],
+            "export_dir": ["/u01/oas-admin-lite/backups"],
+            "export_options": ["includedata"],
+            "stdin_file": ["/u01/oas-admin-lite/backups/exportpwd.txt"],
+        })
+        self.assertEqual(script, "exportarchive.sh")
+        self.assertEqual(args, "bootstrap /u01/oas-admin-lite/backups includedata")
+        self.assertEqual(stdin_text, "")
+        self.assertEqual(stdin_label, "/u01/oas-admin-lite/backups/exportpwd.txt")
+
+    def test_exportarchive_rejects_cli_password_option(self):
+        with self.assertRaises(ValueError) as cli:
+            script_request({
+                "script": ["exportarchive.sh"],
+                "arg_mode": ["exportarchive"],
+                "service_instance": ["bootstrap"],
+                "export_dir": ["/u01/oas-admin-lite/backups"],
+                "export_options": ["encryptionpassword=Admin123"],
+                "stdin_file": ["/u01/oas-admin-lite/backups/exportpwd.txt"],
+            })
+        self.assertIn("encryptionpassword", str(cli.exception))
 
     def test_script_form_state_excludes_stdin_secret(self):
         state = script_form_state({
@@ -68,23 +95,26 @@ class ConfigTests(unittest.TestCase):
             "service_instance": ["ssi"],
             "export_dir": ["/u01/oas-admin-lite/backups/export"],
             "export_options": ["includedata"],
+            "stdin_file": ["/u01/oas-admin-lite/backups/exportpwd.txt"],
             "stdin_text": ["secret-password"],
         })
         self.assertEqual(state["service_instance"], "ssi")
         self.assertEqual(state["export_dir"], "/u01/oas-admin-lite/backups/export")
+        self.assertEqual(state["stdin_file"], "/u01/oas-admin-lite/backups/exportpwd.txt")
         self.assertNotIn("stdin_text", state)
         self.assertNotIn("secret-password", str(state))
 
 
-    def test_script_preview_uses_stdin_without_command_leak(self):
+    def test_script_preview_uses_stdin_file_without_password_leak(self):
         cfg = load_config("configs/app.local.yaml")
         with tempfile.TemporaryDirectory() as tmp:
             store = JobStore(os.path.join(tmp, "test.db"))
             service = ScriptService(cfg, store)
-            service.preview("exportarchive.sh", "ssi /tmp/export", "secret-password")
+            service.preview("exportarchive.sh", "ssi /tmp/export", "", "/tmp/exportpwd.txt")
             state = service.state_dict()
             self.assertIn("exportarchive.sh", state["last_command"])
             self.assertIn("ssi", state["last_command"])
+            self.assertIn("< /tmp/exportpwd.txt", state["last_command"])
             self.assertNotIn("secret-password", state["last_command"])
             self.assertEqual(state["last_job_type"], "script_command_check")
             self.assertIn("명령어 미리보기만 생성했습니다", state["last_output"])

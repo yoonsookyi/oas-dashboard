@@ -76,14 +76,14 @@ def make_handler(ctx):
                     self._redirect_flash("/patch", "현재 패치 레벨 조회가 완료되었습니다.")
 
                 elif parsed.path == "/scripts/preview":
-                    script, args, stdin_text = script_request(form)
+                    script, args, stdin_text, stdin_label = script_request(form)
                     ctx.store.set_json("script_form_state", script_form_state(form))
-                    ctx.scripts.preview(script, args, stdin_text)
+                    ctx.scripts.preview(script, args, stdin_text, stdin_label)
                     self._redirect_flash(script_redirect(script), "명령어 미리보기를 생성했습니다. OAS 스크립트는 실행하지 않았습니다.")
                 elif parsed.path == "/scripts/run":
-                    script, args, stdin_text = script_request(form)
+                    script, args, stdin_text, stdin_label = script_request(form)
                     ctx.store.set_json("script_form_state", script_form_state(form))
-                    ctx.scripts.run(script, args, stdin_text)
+                    ctx.scripts.run(script, args, stdin_text, stdin_label)
                     self._redirect_flash(script_redirect(script), "실제 OAS 스크립트 실행이 완료되었습니다.")
                 else:
                     self.send_error(HTTPStatus.NOT_FOUND, "not found")
@@ -176,14 +176,14 @@ SCRIPT_ACTIONS = [
         "script": "exportarchive.sh",
         "mode": "exportarchive",
         "label": "환경 메타데이터 BAR 내보내기",
-        "method": "exportarchive.sh <service instance key> <export directory> {optional parameters}",
+        "method": "exportarchive.sh <service instance key> <export directory> {optional parameters} < /path/exportpwd.txt",
         "purpose": "서비스 인스턴스의 환경 메타데이터를 BAR 파일로 내보내 이관, 백업, 비교 작업에 사용할 수 있게 합니다.",
-        "required": ["Service instance key", "Export directory", "Encryption password(stdin)"],
-        "optional": ["noconnectionparams", "nouserfolders", "includedata", "advancedoptions=<path> 등 exportarchive.sh help 기준 옵션"],
+        "required": ["Service instance key", "Export directory", "Encryption password file path: password 한 줄만 저장된 서버 파일 경로"],
+        "optional": ["noconnectionparams", "nouserfolders", "includedata", "advancedoptions=<path> 등 exportarchive.sh help 기준 옵션", "encryptionpassword는 입력하지 않음(password file을 stdin으로 전달)"],
         "result": "/u01/oas-admin-lite/backups 하위 export directory에 BAR 내보내기 결과가 생성됩니다. 실행 로그와 exit code는 Jobs / Audit에서 확인합니다.",
         "cautions": [
-            "Encryption password는 명령줄 인자로 저장하지 않고 stdin으로만 전달합니다.",
-            "선택 옵션은 exportarchive.sh help에 표시된 허용 옵션만 입력합니다.",
+            "웹앱은 password 파일 내용을 읽지 않습니다. 사전에 준비한 password 파일 경로만 명령어에 포함합니다.",
+            "실행 시 exportarchive.sh 명령이 < 파일경로 형태로 실행됩니다. 파일에는 password 한 줄만 저장하고 chmod 600 권한을 권장합니다.",
             "실제 실행 버튼을 누르면 OAS 서버의 bitools/bin에서 exportarchive.sh가 실행됩니다.",
         ],
     },
@@ -571,7 +571,7 @@ def scripts_page(ctx, query):
         mode=esc(selected["mode"]),
         brief=script_brief(selected),
         fields=script_fields(selected, saved_form),
-        command_box=script_command_box(command, last_job_type),
+        command_box=script_command_box(command, last_job_type, selected["mode"]),
         recent_result=script_recent_result(recent_output),
     )
     return layout(ctx, "Scripts", "scripts", content, query)
@@ -603,9 +603,9 @@ def script_form_state(form):
         "service_instance": first(form, "service_instance"),
         "export_dir": first(form, "export_dir"),
         "export_options": first(form, "export_options"),
+        "stdin_file": first(form, "stdin_file"),
         "diagnostic_zip": first(form, "diagnostic_zip"),
     }
-
 
 def script_last_command(state, script):
     command = state.get("last_command", "")
@@ -636,15 +636,15 @@ def script_list(items):
     return '<ul>{0}</ul>'.format("".join('<li>{0}</li>'.format(esc(item)) for item in items))
 
 
-def script_command_box(command, last_job_type=""):
+def script_command_box(command, last_job_type="", mode=""):
     if last_job_type == "script_run":
         help_text = "최근 실제 실행에 사용한 명령어입니다. 입력값을 바꾸면 1단계에서 다시 입력 완료(명령어 확인)를 눌러 확인하세요."
     elif command:
         help_text = "미리보기로 생성된 명령어입니다. 이 단계에서는 서버에서 실행하지 않았습니다."
     else:
         help_text = "1단계의 입력 완료(명령어 확인) 버튼을 누르면 쉘 스크립트와 파라미터가 합쳐진 명령어가 표시됩니다."
-    return '<label class="full command-preview">쉘 스크립트 + 파라미터<textarea readonly placeholder="명령어 확인 버튼을 누르면 실행될 명령어가 여기에 표시됩니다.">{0}</textarea><span class="field-help">{1}</span></label>'.format(esc(command), esc(help_text))
-
+    label = "쉘 스크립트 + 파라미터 + stdin 파일" if mode == "exportarchive" else "쉘 스크립트 + 파라미터"
+    return '<label class="full command-preview">{2}<textarea readonly placeholder="명령어 확인 버튼을 누르면 실행될 명령어가 여기에 표시됩니다.">{0}</textarea><span class="field-help">{1}</span></label>'.format(esc(command), esc(help_text), esc(label))
 
 def script_recent_result(output):
     if not output:
@@ -666,8 +666,8 @@ def script_fields(action, values=None):
         <label class="service-instance-field">Service instance key<input name="service_instance" value="{service_instance}" placeholder="ssi"></label>
         <label class="export-dir-field">Export directory<input name="export_dir" value="{export_dir}" placeholder="/u01/oas-admin-lite/backups/export"></label>
         <label class="full">Optional parameters<input name="export_options" value="{export_options}" placeholder="noconnectionparams nouserfolders includedata advancedoptions=/path/options.json"></label>
-        <label class="full">Encryption password(stdin, 명령어에 저장 안 함)<input type="password" name="stdin_text" autocomplete="new-password" placeholder="실제 실행 시 stdin으로만 전달됩니다"></label>
-        """.format(service_instance=esc(values.get("service_instance", "")), export_dir=esc(values.get("export_dir", "")), export_options=esc(values.get("export_options", "")))
+        <label class="full">Encryption password file path<input name="stdin_file" value="{stdin_file}" placeholder="/u01/oas-admin-lite/backups/exportpwd.txt"><span class="field-help">사전에 생성한 password 파일 경로를 입력합니다. 웹앱은 파일 내용을 읽지 않고, 실행 명령에 &lt; 파일경로 형태로 붙여 실행합니다.</span></label>
+        """.format(service_instance=esc(values.get("service_instance", "")), export_dir=esc(values.get("export_dir", "")), export_options=esc(values.get("export_options", "")), stdin_file=esc(values.get("stdin_file", "")))
     if action["mode"] == "diagnostic":
         return """
         <label class="full">ZIP file name<input name="diagnostic_zip" value="{diagnostic_zip}" placeholder="/u01/oas-admin-lite/bundles/oas-diagnostic.zip"></label>
@@ -679,18 +679,21 @@ def script_fields(action, values=None):
 def script_request(form):
     script = first(form, "script")
     mode = first(form, "arg_mode")
-    stdin_text = first(form, "stdin_text")
+    stdin_text = ""
+    stdin_label = ""
     if mode == "exportarchive":
         service_instance = required(form, "service_instance", "Service instance key")
         export_dir = required(form, "export_dir", "Export directory")
-        stdin_text = required(form, "stdin_text", "Encryption password(stdin)")
-        raw_args = join_args([service_instance, export_dir], first(form, "export_options"))
+        export_options = first(form, "export_options")
+        validate_export_options(export_options)
+        stdin_label = required(form, "stdin_file", "Encryption password file path")
+        raw_args = join_args([service_instance, export_dir], export_options)
     elif mode == "diagnostic":
         zip_name = required(form, "diagnostic_zip", "ZIP file name")
         raw_args = join_args([zip_name])
     else:
         raw_args = first(form, "args")
-    return script, raw_args, stdin_text
+    return script, raw_args, stdin_text, stdin_label
 
 
 def required(form, key, label):
@@ -698,6 +701,11 @@ def required(form, key, label):
     if not value:
         raise ValueError("{0} 값을 입력해야 합니다.".format(label))
     return value
+
+
+def validate_export_options(value):
+    if "encryptionpassword" in (value or "").lower():
+        raise ValueError("Optional parameters에는 encryptionpassword를 입력하지 마세요. Password file path로 지정한 파일을 stdin으로 전달합니다.")
 
 
 def join_args(required_parts, optional_text=""):

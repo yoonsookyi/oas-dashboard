@@ -50,6 +50,40 @@ def run_command(command, cwd="", timeout=300, log_dir="", input_text=None):
     return CommandResult(command, cwd, status, exit_code, output, started, ended, log_path)
 
 
+def run_shell_command(command_text, cwd="", timeout=300, log_dir=""):
+    started = time.time()
+    output = ""
+    exit_code = 0
+    status = "SUCCESS"
+    try:
+        proc = subprocess.run(
+            command_text,
+            cwd=cwd or None,
+            shell=True,
+            universal_newlines=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            timeout=timeout,
+            check=False,
+        )
+        output = proc.stdout or ""
+        exit_code = proc.returncode
+        if proc.returncode != 0:
+            status = "FAILED"
+    except Exception as exc:
+        output = str(exc)
+        exit_code = 1
+        status = "FAILED"
+    ended = time.time()
+    log_path = ""
+    if log_dir:
+        Path(log_dir).mkdir(parents=True, exist_ok=True)
+        safe_name = Path(str(command_text).split()[0]).name.replace(".", "_") if command_text else "script"
+        log_path = os.path.join(log_dir, "{0}-{1}.log".format(time.strftime("%Y%m%d-%H%M%S", time.localtime(started)), safe_name))
+        Path(log_path).write_text(output, encoding="utf-8", errors="replace")
+    return CommandResult(command_text, cwd, status, exit_code, output, started, ended, log_path)
+
+
 def truncate(value, limit=1200):
     if len(value) <= limit:
         return value

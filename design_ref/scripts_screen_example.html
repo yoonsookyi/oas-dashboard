@@ -184,6 +184,7 @@
     .step p { margin: 0; color: #3b4c57; font-size: 12px; }
     .field-grid { display: grid; grid-template-columns: minmax(140px, 1fr) minmax(0, 2fr); gap: 10px; }
     label { display: grid; gap: 5px; color: #334155; font-size: 13px; font-weight: 800; }
+    .field-help { color: var(--muted); font-size: 12px; font-weight: 500; line-height: 1.35; }
     .full { grid-column: 1 / -1; }
     input, textarea {
       width: 100%;
@@ -261,10 +262,10 @@
 
           <div class="runbook">
             <section class="runbook-row"><h3>목적</h3><p>서비스 인스턴스의 catalog, security, model 산출물을 BAR 파일로 추출해 백업 또는 이관에 사용합니다.</p></section>
-            <section class="runbook-row"><h3>실행 구문 형식</h3><pre>exportarchive.sh &lt;service instance key&gt; &lt;export directory&gt; {optional parameters}</pre></section>
-            <section class="runbook-row"><h3>필수 파라미터</h3><ul><li>Service instance key</li><li>Export directory</li><li>Encryption password(stdin)</li></ul></section>
-            <section class="runbook-row"><h3>옵션 파라미터</h3><ul><li>includedata</li><li>nouserfolders</li><li>noconnectionparams</li><li>advancedoptions=&lt;path&gt;</li></ul></section>
-            <section class="runbook-row warn"><h3>주의사항</h3><ul><li>암호는 명령어 이력에 남기지 않고 stdin으로만 전달합니다.</li><li>옵션은 exportarchive.sh help에 표시된 값만 입력합니다.</li></ul></section>
+            <section class="runbook-row"><h3>실행 구문 형식</h3><pre>exportarchive.sh &lt;service instance key&gt; &lt;export directory&gt; {optional parameters} &lt; /path/exportpwd.txt</pre></section>
+            <section class="runbook-row"><h3>필수 파라미터</h3><ul><li>Service instance key</li><li>Export directory</li><li>Encryption password file path: password 한 줄만 저장된 서버 파일 경로</li></ul></section>
+            <section class="runbook-row"><h3>옵션 파라미터</h3><ul><li>includedata</li><li>nouserfolders</li><li>noconnectionparams</li><li>advancedoptions=&lt;path&gt;</li><li>encryptionpassword는 입력하지 않음(password file을 stdin으로 전달)</li></ul></section>
+            <section class="runbook-row warn"><h3>주의사항</h3><ul><li>웹앱은 password 파일 내용을 읽지 않습니다. 사전에 준비한 password 파일 경로만 명령어에 포함합니다.</li><li>실행 시 exportarchive.sh 명령이 &lt; 파일경로 형태로 실행됩니다. 파일에는 password 한 줄만 저장하고 chmod 600 권한을 권장합니다.</li></ul></section>
           </div>
         </section>
 
@@ -284,14 +285,14 @@
                 <label>Service instance key<input value="ssi"></label>
                 <label>Export directory<input value="/u01/oas-admin-lite/backups/export-20260706"></label>
                 <label class="full">Optional parameters<input value="includedata noconnectionparams"></label>
-                <label class="full">Encryption password(stdin)<input type="password" value="password"></label>
+                <label class="full">Encryption password file path<input value="/u01/oas-admin-lite/backups/exportpwd.txt"><span class="field-help">사전에 생성한 password 파일 경로를 입력합니다. 웹앱은 파일 내용을 읽지 않고, 실행 명령에 &lt; 파일경로 형태로 붙여 실행합니다.</span></label>
               </div>
               <div class="actions"><span class="btn">입력 완료(명령어 확인)</span></div>
             </section>
 
             <section class="step command">
               <div class="step-head"><span class="step-number">2</span><div><h3>명령어 확인 및 실행</h3><p>쉘 스크립트와 입력 파라미터가 합쳐진 명령어를 확인한 뒤 실행합니다.</p></div></div>
-              <label class="full">쉘 스크립트 + 파라미터<textarea readonly>$DOMAIN_HOME/bitools/bin/exportarchive.sh ssi /u01/oas-admin-lite/backups/export-20260706 includedata noconnectionparams</textarea></label>
+              <label class="full">쉘 스크립트 + 파라미터 + stdin 파일<textarea readonly>$DOMAIN_HOME/bitools/bin/exportarchive.sh ssi /u01/oas-admin-lite/backups/export-20260706 includedata noconnectionparams &lt; /u01/oas-admin-lite/backups/exportpwd.txt</textarea></label>
               <div class="actions"><span class="btn danger">실행</span></div>
               <div class="result-lite"><span>최근 실행 결과 없음</span><span class="link">Jobs / Audit에서 상세 보기</span></div>
             </section>
