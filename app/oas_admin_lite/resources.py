@@ -52,14 +52,23 @@ class ResourceCollector(object):
         return Snapshot(platform.node(), platform.system(), platform.machine(), time.time(), oas_checks, resource_checks, metrics)
 
     def _oas_checks(self):
-        return [
+        checks = [
             self._path_check("ORACLE_HOME", self.cfg.oas.oracle_home, "FMW/OAS Oracle Home"),
             self._path_check("DOMAIN_HOME", self.cfg.oas.domain_home, "OAS domain home"),
-            self._path_check("bitools/bin", self.cfg.oas.bitools_bin, "OAS 관리 스크립트 경로"),
-            self._path_check("OPatch", os.path.join(self.cfg.oas.oracle_home, "OPatch", "opatch"), "OPatch 실행 파일"),
+            self._path_check("bitools/bin", self.cfg.oas.bitools_bin, "OAS 관리 스크립트 경로", executable=True),
+            self._path_check("OPatch", os.path.join(self.cfg.oas.oracle_home, "OPatch", "opatch"), "OPatch 실행 파일", executable=True),
         ]
+        for script in getattr(self.cfg.scripts, "allowed", []) or []:
+            checks.append(self._path_check("Script {0}".format(script), os.path.join(self.cfg.oas.bitools_bin, script), "허용된 OAS 관리 스크립트", executable=True))
+        ohs = getattr(self.cfg, "ohs", None)
+        if ohs and getattr(ohs, "monitor_local", False):
+            checks.extend([
+                self._path_check("OHS ORACLE_HOME", getattr(ohs, "oracle_home", ""), "OHS Oracle Home"),
+                self._path_check("OHS DOMAIN_HOME", getattr(ohs, "domain_home", ""), "OHS domain home"),
+            ])
+        return checks
 
-    def _path_check(self, name, path, detail):
+    def _path_check(self, name, path, detail, executable=False):
         if not path:
             return Check(name, "", "WARN", detail)
         p = Path(path)
@@ -67,6 +76,8 @@ class ResourceCollector(object):
             return Check(name, path, "WARN", "{0}; 경로 없음".format(detail))
         if not os.access(path, os.R_OK):
             return Check(name, path, "WARN", "{0}; 읽기 권한 없음".format(detail))
+        if executable and not os.access(path, os.X_OK):
+            return Check(name, path, "WARN", "{0}; 실행 권한 없음".format(detail))
         return Check(name, path, "OK", detail)
 
     def _linux_metrics(self):

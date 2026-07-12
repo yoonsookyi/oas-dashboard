@@ -74,11 +74,38 @@ nginx/apache 추가 설치
 
 Python 3.6 이상 표준 라이브러리만 사용합니다.
 
+## 사전 점검 항목
+
+`./scripts/healthcheck.sh`는 고객 환경별 설정값과 필수 실행 조건을 점검합니다.
+
+점검 범위:
+
+```text
+App runtime: bash, tar, gzip, mkdir, chmod, nohup, python3 3.6+
+Python modules: 표준 라이브러리 sqlite3, http.server, urllib, ssl 등
+App paths: APP_HOME, config, data, logs, backups, bundles, packages 쓰기 권한
+OAS paths: ORACLE_HOME, DOMAIN_HOME, bitools/bin, OPatch 실행 파일
+OAS scripts: app.yaml의 scripts.allowed에 지정된 스크립트 존재 및 실행 권한
+OHS paths: 선택 점검 항목. OHS를 프론트엔드로 쓰는 경우 OHS ORACLE_HOME, OHS DOMAIN_HOME
+Network: OAS Admin Lite listen 주소 사용 가능 여부, 선택 항목으로 OHS HTTP/HTTPS port listen 여부
+Catalog: Catalog REST endpoint URL 형식
+```
+
+필수 OAS 경로 또는 실행 파일이 없으면 `FAIL`로 표시하고, OHS 경로/포트가 없거나 실행 사용자가 `oracle`이 아니면 `WARN`으로 표시합니다. 고객사마다 OAS/OHS 설치 경로가 다르므로 먼저 `app/config/app.yaml`의 `oas`와 `ohs` 값을 실제 환경에 맞춘 뒤 실행하세요.
+
+분리형 구성에서는 앱이 실행되는 **OAS VM 기준**으로 로컬 점검을 수행합니다. DB 서버가 별도 VM이면 이 앱은 DB OS/프로세스를 직접 점검하지 않고, OAS 관리 스크립트와 Catalog REST 연결만 확인합니다. OHS가 다른 Web-tier VM에 있으면 `ohs.monitor_local: false`로 두어 OHS 로컬 경로와 `127.0.0.1:7777` 점검을 건너뜁니다. 이때 Catalog endpoint는 OAS VM에서 접근 가능한 내부 LB/Web-tier 주소(예: `https://bi-internal.example.com`)로 지정하며, healthcheck가 해당 TCP 경로를 확인합니다. OHS 자체의 프로세스와 설치 경로를 점검하려면 OHS VM에서 별도의 인스턴스를 실행하고 `ohs.monitor_local: true`로 설정합니다. 다중 OAS 노드나 클러스터 환경에서는 각 노드에서 온디맨드로 실행해 노드별 OPatch, DOMAIN_HOME, bitools, 프로세스 상태를 확인하는 방식을 권장합니다.
+
+```bash
+./scripts/healthcheck.sh
+```
+
 ## 권장 배포 위치
 
 ```text
 /u01/oas-admin-lite
 ```
+
+OAS와 OHS가 한 VM에 설치되고 도메인·SSL이 아직 없는 현재 환경의 설치·설정·SSH tunnel 접속 절차는 [단일 VM 배포 가이드](docs/DEPLOYMENT_TOPOLOGY.md#단일-vm-배포-oas와-ohs가-같은-서버인-현재-환경)를 참고하세요.
 
 권장 소유자:
 
@@ -131,7 +158,7 @@ oas:
   domain_home: "/u01/app/oracle/config/domains/bi"
   bitools_bin: "/u01/app/oracle/config/domains/bi/bitools/bin"
   analytics_url: "https://oas.example.com/analytics"
-  catalog_base_url: "http://localhost:7777"
+  catalog_base_url: "https://bi-internal.example.com"
   catalog_api_path: "/api/20210901/catalog"
   catalog_api_url: ""
   catalog_username: ""
@@ -196,7 +223,7 @@ Catalog 화면에서 `집계 가능한 object type이 없습니다`가 표시되
 
 ## Catalog REST 설정
 
-OAS Catalog 현황은 OAS 서버 내부 REST endpoint를 호출해 수집합니다. 기본 설정은 다음 경로를 사용합니다.
+OAS Catalog 현황은 OAS REST endpoint를 호출해 수집합니다. Oracle 문서상 이 REST API는 Web tier 구성 후에만 접근할 수 있으므로, 운영에서는 OAS VM에서 접근 가능한 내부 Web-tier/LB URL을 지정합니다. OAS의 관리 포트나 내부 listener를 REST endpoint로 직접 노출·사용하지 마세요.
 
 Catalog 화면은 Oracle Analytics Server 공식 REST API 문서를 기준으로 구현합니다.
 
@@ -209,7 +236,7 @@ Catalog 화면은 Oracle Analytics Server 공식 REST API 문서를 기준으로
 
 ```yaml
 oas:
-  catalog_base_url: "http://localhost:7777"
+  catalog_base_url: "https://bi-internal.example.com"
   catalog_api_path: "/api/20210901/catalog"
   catalog_api_url: ""
   catalog_username: "<OAS_USER>"
@@ -217,6 +244,8 @@ oas:
 ```
 
 `catalog_api_url`을 지정하면 `catalog_base_url`과 `catalog_api_path`보다 우선합니다.
+
+웹앱의 Catalog 수집은 OAS Catalog REST API만 사용합니다. REST API의 지원 type 목록을 실행 시 먼저 확인한 뒤, Classic 객체(`analysis`, `dashboards`, `dashboardpages`, `reports`)와 DV 객체(`workbooks`, `datasets`, `connections`, `dataflows`, `models`, `sequences`)를 같은 수집 흐름에서 처리합니다. `runcat.sh`나 Catalog DB 직접 조회는 웹앱의 수집 경로에 포함하지 않습니다. 자세한 분리 배포 및 검증 절차는 [docs/DEPLOYMENT_TOPOLOGY.md](docs/DEPLOYMENT_TOPOLOGY.md)를 참고하세요.
 
 비밀번호는 파일에 저장하지 않고 환경변수로 주는 방식을 권장합니다.
 

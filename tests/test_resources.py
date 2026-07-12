@@ -1,7 +1,8 @@
 import unittest
 from unittest.mock import patch
 
-from app.oas_admin_lite.resources import process_check, threshold_status
+from app.oas_admin_lite.config import AppConfig
+from app.oas_admin_lite.resources import ResourceCollector, process_check, threshold_status
 
 
 class ResourceStatusTests(unittest.TestCase):
@@ -10,6 +11,33 @@ class ResourceStatusTests(unittest.TestCase):
         self.assertEqual(threshold_status(40, 40, 75), "WARN")
         self.assertEqual(threshold_status(75, 40, 75), "HIGH")
 
+
+    def test_oas_checks_report_missing_configured_paths(self):
+        cfg = AppConfig()
+        cfg.oas.oracle_home = "/missing/oas_home"
+        cfg.oas.domain_home = "/missing/domain_home"
+        cfg.oas.bitools_bin = "/missing/domain_home/bitools/bin"
+        cfg.scripts.allowed = ["diagnostic_dump.sh"]
+        cfg.ohs.monitor_local = True
+        cfg.ohs.oracle_home = "/missing/ohs_home"
+        cfg.ohs.domain_home = "/missing/ohs_domain"
+
+        checks = ResourceCollector(cfg)._oas_checks()
+        by_name = {check.name: check for check in checks}
+
+        self.assertEqual(by_name["ORACLE_HOME"].status, "WARN")
+        self.assertIn("경로 없음", by_name["ORACLE_HOME"].detail)
+        self.assertEqual(by_name["Script diagnostic_dump.sh"].status, "WARN")
+        self.assertEqual(by_name["OHS ORACLE_HOME"].status, "WARN")
+        self.assertEqual(by_name["OHS DOMAIN_HOME"].status, "WARN")
+
+    def test_oas_checks_skip_ohs_paths_when_ohs_is_remote(self):
+        cfg = AppConfig()
+        cfg.ohs.monitor_local = False
+        names = {check.name for check in ResourceCollector(cfg)._oas_checks()}
+
+        self.assertNotIn("OHS ORACLE_HOME", names)
+        self.assertNotIn("OHS DOMAIN_HOME", names)
     def test_process_check_filters_before_display_limit(self):
         class Result(object):
             returncode = 0

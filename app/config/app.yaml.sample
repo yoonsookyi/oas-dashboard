@@ -14,11 +14,24 @@ oas:
   domain_home: "/u01/app/oracle/config/domains/bi"
   bitools_bin: "/u01/app/oracle/config/domains/bi/bitools/bin"
   analytics_url: "https://oas.example.com/analytics"
-  catalog_base_url: "http://localhost:7777"
+  # The supported OAS REST API is exposed through the web tier. In a split
+  # deployment use the private/LB web-tier URL reachable from this OAS host.
+  # Do not point this at an unmanaged WebLogic/BI internal listener.
+  catalog_base_url: "https://bi-internal.example.com"
   catalog_api_path: "/api/20210901/catalog"
   catalog_api_url: ""
   catalog_username: ""
   catalog_password: ""
+
+ohs:
+  # false when OHS is on another Web-tier VM (the usual production layout).
+  # true only when Admin Lite runs on the same VM as OHS.
+  monitor_local: false
+  oracle_home: "/u01/app/Oracle/Middleware/ohs_14.1.2"
+  domain_home: "/u01/data/domains/ohs_domain"
+  instance_name: "ohs1"
+  http_port: "7777"
+  https_port: ""
 
 patch:
   allowed_patch_dirs:

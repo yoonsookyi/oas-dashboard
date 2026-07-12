@@ -286,6 +286,7 @@ def nav(active):
 def resources_page(ctx, query):
     snap = ctx.resources.snapshot()
     metric_cards = "".join(metric_card(metric) for metric in snap.metrics)
+    oas_rows = "".join(check_row(c, value_second=False) for c in snap.oas_checks)
     resource_rows = "".join(check_row(c, value_second=False) for c in snap.resource_checks)
     content = """
 <section class="panel">
@@ -298,10 +299,14 @@ def resources_page(ctx, query):
   <div class="metric-grid">{metric_cards}</div>
 </section>
 <section class="panel">
+  <div class="panel-head"><h2>OAS/OHS 런타임 경로</h2></div>
+  <table><thead><tr><th>항목</th><th>상태</th><th>값</th><th>상세</th></tr></thead><tbody>{oas_rows}</tbody></table>
+</section>
+<section class="panel">
   <div class="panel-head"><h2>리스너 및 프로세스 상세</h2></div>
   <table><thead><tr><th>항목</th><th>상태</th><th>값</th><th>상세</th></tr></thead><tbody>{resource_rows}</tbody></table>
 </section>
-""".format(snapshot=snapshot_kv(snap), legend=metric_status_legend(), metric_cards=metric_cards, resource_rows=resource_rows)
+""".format(snapshot=snapshot_kv(snap), legend=metric_status_legend(), metric_cards=metric_cards, oas_rows=oas_rows, resource_rows=resource_rows)
     return layout(ctx, "Resources", "resources", content, query)
 
 def path_card(check):

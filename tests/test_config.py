@@ -20,7 +20,7 @@ class ConfigTests(unittest.TestCase):
         self.assertIn("exportarchive.sh", data["scripts"]["allowed"])
         self.assertIn("diagnostic_dump.sh", data["scripts"]["allowed"])
         self.assertIn("/u01/stage/patches", data["patch"]["allowed_patch_dirs"])
-        self.assertEqual(data["oas"]["catalog_base_url"], "http://localhost:7777")
+        self.assertEqual(data["oas"]["catalog_base_url"], "https://bi-internal.example.com")
         self.assertEqual(data["oas"]["catalog_api_path"], "/api/20210901/catalog")
 
     def test_load_local_config(self):
@@ -30,6 +30,7 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(cfg.oas.catalog_api_path, "/mock/catalog")
         self.assertEqual(cfg.ohs.domain_home, ".local/mock/ohs_domain")
         self.assertEqual(cfg.ohs.http_port, "7777")
+        self.assertTrue(cfg.ohs.monitor_local)
 
     def test_importarchive_is_blocked(self):
         cfg = load_config("configs/app.local.yaml")

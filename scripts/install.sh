@@ -24,10 +24,11 @@ mkdir -p \
   "$APP_HOME/run"
 
 if [ "$APP_ROOT" != "$APP_HOME" ]; then
-  mkdir -p "$APP_HOME/app" "$APP_HOME/scripts" "$APP_HOME/deploy"
+  mkdir -p "$APP_HOME/app" "$APP_HOME/scripts" "$APP_HOME/deploy" "$APP_HOME/docs"
   cp -R "$APP_ROOT/app/." "$APP_HOME/app/"
   cp -R "$APP_ROOT/scripts/." "$APP_HOME/scripts/"
   if [ -d "$APP_ROOT/deploy" ]; then cp -R "$APP_ROOT/deploy/." "$APP_HOME/deploy/"; fi
+  if [ -d "$APP_ROOT/docs" ]; then cp -R "$APP_ROOT/docs/." "$APP_HOME/docs/"; fi
   if [ -f "$APP_ROOT/README.md" ]; then cp "$APP_ROOT/README.md" "$APP_HOME/README.md"; fi
 fi
 

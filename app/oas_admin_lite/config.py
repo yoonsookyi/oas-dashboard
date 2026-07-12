@@ -23,7 +23,7 @@ class OASConfig(object):
         self.domain_home = "/u01/app/oracle/config/domains/bi"
         self.bitools_bin = "/u01/app/oracle/config/domains/bi/bitools/bin"
         self.analytics_url = "https://oas.example.com/analytics"
-        self.catalog_base_url = "http://localhost:7777"
+        self.catalog_base_url = ""
         self.catalog_api_path = "/api/20210901/catalog"
         self.catalog_api_url = ""
         self.catalog_username = ""
@@ -32,6 +32,9 @@ class OASConfig(object):
 
 class OHSConfig(object):
     def __init__(self):
+        # OHS is commonly installed on a different Web-tier host. Only set this
+        # to true when Admin Lite runs on that same host.
+        self.monitor_local = False
         self.oracle_home = "/u01/app/Oracle/Middleware/ohs_14.1.2"
         self.domain_home = "/u01/data/domains/ohs_domain"
         self.instance_name = "ohs1"

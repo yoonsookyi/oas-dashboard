@@ -21,6 +21,7 @@ oas:
   catalog_password: ""
 
 ohs:
+  monitor_local: true
   oracle_home: ".local/mock/ohs_home"
   domain_home: ".local/mock/ohs_domain"
   instance_name: "ohs1"
