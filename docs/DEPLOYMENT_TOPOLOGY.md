@@ -105,6 +105,22 @@ http://127.0.0.1:18080
 
 이 구성에서는 Admin Lite와 Catalog REST 구간이 모두 같은 VM 내부의 HTTP 통신이다. SSL과 도메인이 도입되기 전까지는 OHS 또는 방화벽에서 `18080`을 외부에 공개하지 않는다.
 
+### 운영 서버에 배포되는 파일
+
+릴리스 패키지에는 다음 파일만 포함한다.
+
+| 경로 | 용도 |
+|---|---|
+| `app/oas_admin_lite.py`, `app/oas_admin_lite/` | Admin Lite 실행 코드와 정적 화면 파일 |
+| `app/config/app.yaml.sample` | 최초 설치 시 생성되는 설정 샘플 |
+| `scripts/install.sh` | 최초 설치 |
+| `scripts/healthcheck.sh` | 환경·경로·OHS/OAS 연결 점검 |
+| `scripts/start.sh`, `stop.sh`, `status.sh` | 프로세스 운영 |
+| `scripts/update.sh`, `rollback.sh`, `uninstall.sh` | 업데이트·롤백·제거 |
+| `docs/DEPLOYMENT_TOPOLOGY.md`, `README.md` | 설치 및 운영 안내 |
+
+운영 서버에 배포하지 않는 항목은 단위 테스트(`tests/`), 로컬 개발 설정(`configs/app.local.yaml`), 디자인 참조와 목업(`design_ref/`), 빌드 전용 `scripts/package.sh`다. 현재 구성에서는 Admin Lite를 OHS로 외부 공개하지 않으므로 OHS reverse-proxy 예제도 제거했다. 실행 중 생성되는 `data/`, `logs/`, `backups/`, `bundles/`, `packages/`, `run/`은 운영 데이터이므로 릴리스 패키지에 넣지 않는다.
+
 이 애플리케이션은 OAS 관리 작업을 실행하는 OAS VM에 배포한다. OAS 실행 파일, `bitools/bin`, OPatch와 로컬 프로세스를 확인해야 하기 때문이다. DB VM과 OHS VM에는 이 파일 경로나 프로세스가 없으므로 동일 인스턴스로 로컬 점검하지 않는다.
 
 ```text

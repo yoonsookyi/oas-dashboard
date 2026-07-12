@@ -15,5 +15,5 @@ mkdir -p "$APP_HOME/packages/rollback"
 if [ -d "$APP_HOME/app" ]; then
   tar -czf "$APP_HOME/packages/rollback/app-$TS.tar.gz" -C "$APP_HOME" app
 fi
-tar -xzf "$RELEASE_TAR" -C "$APP_HOME"
+tar -xzf "$RELEASE_TAR" -C "$APP_HOME" --strip-components=1
 echo "updated from $RELEASE_TAR"

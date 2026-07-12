@@ -4,7 +4,7 @@ OAS Admin Lite는 Oracle Analytics Server 2026 운영자를 위한 경량 온디
 
 앱은 `oracle` 계정으로 필요할 때만 실행하는 것을 기준으로 하며, OAS 서버에 systemd 서비스나 sudoers를 등록하지 않습니다. 앱 파일, 로그, 작업 이력, 백업, 패치 staging 파일은 `/u01/oas-admin-lite` 아래에 모아두는 구조입니다.
 
-상세 소개 문서는 [docs/INTRODUCTION.md](docs/INTRODUCTION.md)를 참고하세요.
+현재 단일 VM(OAS·OHS 동시 설치) 배포 절차와 운영 파일 구성은 [docs/DEPLOYMENT_TOPOLOGY.md](docs/DEPLOYMENT_TOPOLOGY.md)를 참고하세요.
 
 ## 아키텍처 개요
 
