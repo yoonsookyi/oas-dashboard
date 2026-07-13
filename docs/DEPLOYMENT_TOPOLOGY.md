@@ -94,8 +94,16 @@ healthcheck가 확인하는 핵심 결과는 다음과 같다.
 관리자 PC에서 다음 SSH tunnel을 연다.
 
 ```bash
-ssh -N -L 18080:127.0.0.1:18080 oracle@<OAS_VM_IP>
+ssh -i <PRIVATE_KEY_FILE> -N -L 18080:127.0.0.1:18080 oracle@<OAS_VM_IP>
 ```
+
+Windows PowerShell 예시:
+
+```powershell
+ssh -i "C:\Keys\oas-admin-lite.pem" -N -L 18080:127.0.0.1:18080 oracle@<OAS_VM_IP>
+```
+
+개인키 파일은 관리자 PC에만 보관하고 Git 저장소·운영 서버·앱 설정 파일에는 저장하지 않는다. Linux 또는 macOS에서 개인키 권한 오류가 발생하면 `chmod 600 <PRIVATE_KEY_FILE>`로 소유자 읽기 권한만 부여한다.
 
 이후 관리자 PC 브라우저에서 다음 주소로 접속한다.
 

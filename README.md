@@ -150,8 +150,16 @@ cd /u01/oas-admin-lite
 관리자 PC에서 SSH tunnel을 엽니다.
 
 ```bash
-ssh -N -L 18080:127.0.0.1:18080 oracle@<OAS_VM_IP>
+ssh -i <PRIVATE_KEY_FILE> -N -L 18080:127.0.0.1:18080 oracle@<OAS_VM_IP>
 ```
+
+예를 들어 Windows PowerShell에서는 다음과 같이 실행합니다.
+
+```powershell
+ssh -i "C:\Keys\oas-admin-lite.pem" -N -L 18080:127.0.0.1:18080 oracle@<OAS_VM_IP>
+```
+
+개인키 파일은 관리자 PC에만 보관하고 Git 저장소·운영 서버·앱 설정 파일에는 저장하지 않습니다.
 
 브라우저에서 아래 주소로 접속합니다.
 
