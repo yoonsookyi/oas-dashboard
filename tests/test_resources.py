@@ -50,7 +50,8 @@ class ResourceStatusTests(unittest.TestCase):
 
         self.assertEqual(check.status, "OK")
         self.assertIn("*:7777", check.value)
-        self.assertEqual(check.detail, "7777: OHS HTTP/REST")
+        self.assertIn("명령: ss -lnt", check.detail)
+        self.assertIn("7777: OHS HTTP/REST", check.detail)
 
     def test_process_check_filters_before_display_limit(self):
         class Result(object):
@@ -71,6 +72,11 @@ class ResourceStatusTests(unittest.TestCase):
         self.assertIn("sawserver", check.value)
         self.assertIn("bi_server1", check.value)
         self.assertIn("httpd", check.value)
+        self.assertIn("역할                         PID", check.value)
+        self.assertIn("OAS Presentation Services", check.value)
+        self.assertIn("OAS WebLogic Managed", check.value)
+        self.assertIn("OHS HTTP Server", check.value)
+        self.assertIn("명령: ps -eo pid,ppid,comm,args", check.detail)
 
 
 if __name__ == "__main__":
