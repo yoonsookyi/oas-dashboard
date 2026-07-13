@@ -185,21 +185,21 @@ def listener_check():
     elif shutil.which("netstat"):
         cmd = ["netstat", "-lnt"]
     else:
-        return Check("OAS/OHS Listener Ports", "", "WARN", "수집 명령: ss -lnt 또는 netstat -lnt · 역할: OAS/OHS TCP LISTEN 상태 확인; 명령을 찾을 수 없습니다.")
+        return Check("OAS/OHS Listener Ports", "", "WARN", "명령: ss -lnt 또는 netstat -lnt\n역할: OAS/OHS TCP LISTEN 상태 확인; 명령을 찾을 수 없습니다.")
     patterns = [":7001", ":7002", ":7777", ":9500", ":9502", ":9503", ":9704", ":9804"]
     try:
         proc = subprocess.run(cmd, universal_newlines=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=5, check=False)
     except Exception as exc:
-        return Check("OAS/OHS Listener Ports", "", "WARN", "명령: {0} · 역할: OAS/OHS TCP LISTEN 상태 확인; {1}".format(" ".join(cmd), exc))
+        return Check("OAS/OHS Listener Ports", "", "WARN", "명령: {0}\n역할: OAS/OHS TCP LISTEN 상태 확인; {1}".format(" ".join(cmd), exc))
     if proc.returncode != 0:
-        return Check("OAS/OHS Listener Ports", proc.stdout.strip(), "WARN", "명령: {0} · 역할: OAS/OHS TCP LISTEN 상태 확인".format(" ".join(cmd)))
+        return Check("OAS/OHS Listener Ports", proc.stdout.strip(), "WARN", "명령: {0}\n역할: OAS/OHS TCP LISTEN 상태 확인".format(" ".join(cmd)))
 
     # Filter before applying the display limit. The full ss output can be long
     # enough that a relevant OHS line (for example :7777) appears after a
     # generic command output truncation point.
     lines = [line.strip() for line in proc.stdout.splitlines() if any(pattern in line for pattern in patterns)]
     if not lines:
-        return Check("OAS/OHS Listener Ports", "공통 OAS/OHS 포트가 listen 목록에서 감지되지 않았습니다.", "WARN", "명령: {0} · 역할: OAS/OHS TCP LISTEN 상태 확인".format(" ".join(cmd)))
+        return Check("OAS/OHS Listener Ports", "공통 OAS/OHS 포트가 listen 목록에서 감지되지 않았습니다.", "WARN", "명령: {0}\n역할: OAS/OHS TCP LISTEN 상태 확인".format(" ".join(cmd)))
     port_labels = {
         ":7777": "7777: OHS HTTP/REST",
         ":9500": "9500: WebLogic Administration",
@@ -211,7 +211,7 @@ def listener_check():
         ":9804": "9804: OAS listener",
     }
     detected = [pattern for pattern in patterns if any(pattern in line for line in lines)]
-    detail = "명령: {0} · {1}".format(" ".join(cmd), " · ".join(port_labels[pattern] for pattern in detected))
+    detail = "명령: {0}\n역할: {1}".format(" ".join(cmd), " · ".join(port_labels[pattern] for pattern in detected))
     return Check("OAS/OHS Listener Ports", "\n".join(lines[:40]), "OK", detail)
 
 
@@ -221,20 +221,20 @@ def process_check():
     try:
         proc = subprocess.run(command, universal_newlines=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=5, check=False)
     except Exception as exc:
-        return Check("OAS/OHS Processes", "", "WARN", "명령: {0} · 역할: OAS/OHS 핵심 프로세스 감지; {1}".format(" ".join(command), exc))
+        return Check("OAS/OHS Processes", "", "WARN", "명령: {0}\n역할: OAS/OHS 핵심 프로세스 감지; {1}".format(" ".join(command), exc))
     if proc.returncode != 0:
-        return Check("OAS/OHS Processes", proc.stdout.strip(), "WARN", "명령: {0} · 역할: OAS/OHS 핵심 프로세스 감지".format(" ".join(command)))
+        return Check("OAS/OHS Processes", proc.stdout.strip(), "WARN", "명령: {0}\n역할: OAS/OHS 핵심 프로세스 감지".format(" ".join(command)))
     rows = []
     for line in proc.stdout.splitlines():
         lower = line.lower()
         if any(keyword in lower for keyword in keywords) and "oas_admin_lite" not in lower:
             rows.append(format_process_row(line))
     if not rows:
-        return Check("OAS/OHS Processes", "OAS/OHS 관련 프로세스가 ps 결과에서 감지되지 않았습니다.", "WARN", "명령: {0} · 역할: OAS/OHS 핵심 프로세스 감지".format(" ".join(command)))
+        return Check("OAS/OHS Processes", "OAS/OHS 관련 프로세스가 ps 결과에서 감지되지 않았습니다.", "WARN", "명령: {0}\n역할: OAS/OHS 핵심 프로세스 감지".format(" ".join(command)))
     rows.sort(key=lambda row: (row[0], row[1]))
     header = "역할                         PID    PPID  프로세스        실행 경로/명령"
     value = "\n".join([header] + [row[2] for row in rows[:40]])
-    return Check("OAS/OHS Processes", value, "OK", "명령: {0} · 역할: OAS/OHS 핵심 프로세스 감지 · 감지 {1}개, 최대 40개 행 표시".format(" ".join(command), len(rows)))
+    return Check("OAS/OHS Processes", value, "OK", "명령: {0}\n역할: OAS/OHS 핵심 프로세스 감지 · 감지 {1}개, 최대 40개 행 표시".format(" ".join(command), len(rows)))
 
 
 def format_process_row(line):
@@ -281,6 +281,6 @@ def command_check(name, command, role, timeout=5):
         value = proc.stdout.strip()
         if len(value) > 2000:
             value = value[:2000] + "..."
-        return Check(name, value, "OK" if proc.returncode == 0 else "WARN", "명령: {0} · 역할: {1}".format(" ".join(command), role))
+        return Check(name, value, "OK" if proc.returncode == 0 else "WARN", "명령: {0}\n역할: {1}".format(" ".join(command), role))
     except Exception as exc:
-        return Check(name, "", "WARN", "명령: {0} · 역할: {1}; {2}".format(" ".join(command), role, exc))
+        return Check(name, "", "WARN", "명령: {0}\n역할: {1}; {2}".format(" ".join(command), role, exc))
