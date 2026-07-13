@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch
 
 from app.oas_admin_lite.config import AppConfig
-from app.oas_admin_lite.resources import ResourceCollector, process_check, threshold_status
+from app.oas_admin_lite.resources import ResourceCollector, listener_check, process_check, threshold_status
 
 
 class ResourceStatusTests(unittest.TestCase):
@@ -38,6 +38,20 @@ class ResourceStatusTests(unittest.TestCase):
 
         self.assertNotIn("OHS ORACLE_HOME", names)
         self.assertNotIn("OHS DOMAIN_HOME", names)
+
+    def test_listener_check_filters_before_output_is_limited(self):
+        class Result(object):
+            returncode = 0
+            stdout = "LISTEN noise\n" * 1000 + "LISTEN 0 511 *:7777 *:*\n"
+
+        with patch("app.oas_admin_lite.resources.shutil.which", return_value="/usr/bin/ss"):
+            with patch("app.oas_admin_lite.resources.subprocess.run", return_value=Result()):
+                check = listener_check()
+
+        self.assertEqual(check.status, "OK")
+        self.assertIn("*:7777", check.value)
+        self.assertIn("감지 포트: :7777", check.detail)
+
     def test_process_check_filters_before_display_limit(self):
         class Result(object):
             returncode = 0

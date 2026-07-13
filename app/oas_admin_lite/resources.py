@@ -185,14 +185,23 @@ def listener_check():
         cmd = ["netstat", "-lnt"]
     else:
         return Check("OAS/OHS Listener Ports", "", "WARN", "ss/netstat 명령을 찾을 수 없습니다.")
-    check = command_check("OAS/OHS Listener Ports", cmd)
-    if check.status != "OK":
-        return check
     patterns = [":7001", ":7002", ":7777", ":9500", ":9502", ":9503", ":9704", ":9804"]
-    lines = [line for line in check.value.splitlines() if any(pattern in line for pattern in patterns)]
+    try:
+        proc = subprocess.run(cmd, universal_newlines=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=5, check=False)
+    except Exception as exc:
+        return Check("OAS/OHS Listener Ports", "", "WARN", str(exc))
+    if proc.returncode != 0:
+        return Check("OAS/OHS Listener Ports", proc.stdout.strip(), "WARN", " ".join(cmd))
+
+    # Filter before applying the display limit. The full ss output can be long
+    # enough that a relevant OHS line (for example :7777) appears after a
+    # generic command output truncation point.
+    lines = [line.strip() for line in proc.stdout.splitlines() if any(pattern in line for pattern in patterns)]
     if not lines:
-        return Check("OAS/OHS Listener Ports", "공통 OAS/OHS 포트가 listen 목록에서 감지되지 않았습니다.", "WARN", "확인 포트: {0}".format(", ".join(patterns)))
-    return Check("OAS/OHS Listener Ports", "\n".join(lines), "OK", "감지 포트: {0}".format(", ".join(patterns)))
+        return Check("OAS/OHS Listener Ports", "공통 OAS/OHS 포트가 listen 목록에서 감지되지 않았습니다.", "WARN", "점검 대상 포트: {0}".format(", ".join(patterns)))
+    detected = [pattern for pattern in patterns if any(pattern in line for line in lines)]
+    detail = "감지 포트: {0}; 점검 대상: {1}".format(", ".join(detected), ", ".join(patterns))
+    return Check("OAS/OHS Listener Ports", "\n".join(lines[:40]), "OK", detail)
 
 
 def process_check():
