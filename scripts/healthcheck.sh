@@ -193,6 +193,7 @@ ok("external pip packages: not required")
 sys.path.insert(0, str(Path(app_home) / "app"))
 try:
     from oas_admin_lite.config import load_config
+    from oas_admin_lite.scripts_runner import allowed_scripts
 except Exception as exc:
     fail("cannot import oas_admin_lite config module: {0}".format(exc))
     sys.exit(1)
@@ -224,7 +225,7 @@ check_path("OAS ORACLE_HOME", cfg.oas.oracle_home, "dir", executable=True)
 check_path("OAS DOMAIN_HOME", cfg.oas.domain_home, "dir", executable=True)
 check_path("OAS bitools/bin", cfg.oas.bitools_bin, "dir", executable=True)
 check_path("OPatch executable", os.path.join(cfg.oas.oracle_home, "OPatch", "opatch"), "file", executable=True)
-for script in cfg.scripts.allowed or []:
+for script in allowed_scripts(cfg.scripts.allowed):
     check_path("OAS script {0}".format(script), os.path.join(cfg.oas.bitools_bin, script), "file", executable=True)
 
 ohs = getattr(cfg, "ohs", None)

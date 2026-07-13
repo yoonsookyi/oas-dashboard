@@ -1,127 +1,87 @@
 # OAS Admin Lite
 
-OAS Admin Lite는 Oracle Analytics Server 2026 운영자를 위한 경량 온디맨드 Admin 웹앱입니다.
+OAS Admin Lite는 Oracle Analytics Server(OAS) 운영자가 필요한 시점에 실행하는 경량 관리자 웹앱입니다. OAS의 상태, 패치, Catalog 객체, 제한된 운영 스크립트와 작업 이력을 한 화면에서 확인합니다.
 
-앱은 `oracle` 계정으로 필요할 때만 실행하는 것을 기준으로 하며, OAS 서버에 systemd 서비스나 sudoers를 등록하지 않습니다. 앱 파일, 로그, 작업 이력, 백업, 패치 staging 파일은 `/u01/oas-admin-lite` 아래에 모아두는 구조입니다.
+앱은 OAS 설치 계정인 `oracle`로 실행하며, systemd 서비스·sudoers·외부 Python 패키지·별도 DB를 추가하지 않습니다. 앱 데이터와 로그는 기본적으로 `/u01/oas-admin-lite` 아래에 저장됩니다.
 
-현재 단일 VM(OAS·OHS 동시 설치) 배포 절차와 운영 파일 구성은 [docs/DEPLOYMENT_TOPOLOGY.md](docs/DEPLOYMENT_TOPOLOGY.md)를 참고하세요.
+## 문서 흐름
 
-## 아키텍처 개요
+이 문서는 다음 순서로 구성됩니다.
 
-OAS Admin Lite는 OAS 서버 안에서 `oracle` 계정으로 필요할 때만 실행되는 Python 웹앱입니다. Resources는 OAS 서버 상태를 조회하고, 앱 실행 이력과 설정값은 Jobs / Audit 및 Settings에서 분리해 보여줍니다.
+1. [아키텍처](#아키텍처)와 보안 경계
+2. [기능](#기능)과 수집 범위
+3. [설치 및 배포](#설치-및-배포)
+4. [운영 및 사용 방법](#운영-및-사용-방법)
+5. [업데이트·롤백·제거](#업데이트-롤백-및-제거)
 
-```mermaid
-flowchart LR
-    Admin["운영자 브라우저"]
-    Tunnel["SSH Tunnel\n또는 내부망 접속"]
-    App["OAS Admin Lite\nPython HTTP App\n/u01/oas-admin-lite"]
-    Config["app/config/app.yaml\n환경변수"]
-    DB["SQLite\nJobs / Audit"]
-    Logs["logs/jobs\nstdout / stderr"]
-    OAS["OAS 2026 / FMW / OHS"]
-    Catalog["Catalog REST API\nhttp://localhost:7777/api/20210901/catalog"]
-    OPatch["ORACLE_HOME/OPatch\nopatch lsinventory"]
-    Scripts["DOMAIN_HOME/bitools/bin\nallowlist scripts"]
-    OS["Linux read-only checks\nCPU / Memory / Disk / Port / Process"]
+현재처럼 OAS와 OHS가 하나의 VM에 설치되고 도메인·SSL이 없는 환경의 상세 절차와 배포 파일 목록은 [단일 VM 배포 가이드](docs/DEPLOYMENT_TOPOLOGY.md)를 참고하세요.
 
-    Admin --> Tunnel --> App
-    App --> Config
-    App --> DB
-    App --> Logs
-    App --> Catalog
-    App --> OPatch
-    App --> Scripts
-    App --> OS
-    Catalog --> OAS
-    OPatch --> OAS
-    Scripts --> OAS
-```
+## 아키텍처
 
-## 주요 기능
-
-- Resources: 첫 화면으로 CPU, Memory, Swap, `/u01` Disk, OAS 런타임 경로, OAS/OHS listener, OAS/OHS process 상태 조회
-- Catalog: OAS REST API 기반 유형별 현황, owner, 변경일, 폴더 구조, ACL 리스크 대시보드
-- Patch: `opatch lsinventory` 기반 현재 패치 레벨 조회
-- Scripts: allowlist 기반 OAS 관리 스크립트 실행
-  - `diagnostic_dump.sh`
-  - `exportarchive.sh`
-- Jobs / Audit: SQLite 기반 작업 이력 저장
-- Settings: 현재 설정 조회
-
-## 요구 사항
-
-운영 서버 기준:
+### 현재 단일 VM 환경
 
 ```text
-Linux
-python3 3.6 이상
-bash
-tar / gzip
+관리자 PC -- SSH tunnel --> Admin Lite (127.0.0.1:18080)
+                                      │ HTTP loopback
+                                      ▼
+                             OHS (127.0.0.1:7777)
+                                      ▼
+                                     OAS
+                                      ▼
+                                     DB
+```
+
+- Admin Lite는 OAS/OHS가 설치된 VM에서 `oracle` 계정으로 실행합니다.
+- 관리 웹앱은 `127.0.0.1:18080`에서만 수신합니다. 관리자는 SSH tunnel을 통해 접속합니다.
+- Catalog는 OHS가 제공하는 OAS Catalog REST API를 호출합니다.
+- 현재 SSL과 도메인이 없으므로 Admin Lite와 OHS 사이에는 같은 VM 내부의 HTTP loopback 통신을 사용합니다. `18080`은 외부 방화벽에 열지 않습니다.
+
+### 분리 서버 환경
+
+OAS·OHS·DB가 분리된 환경에서도 동작합니다. Admin Lite는 OAS VM에 두고, `catalog_base_url`에는 OAS VM에서 접근 가능한 내부 OHS 또는 내부 LB 주소를 지정합니다. OHS가 다른 VM이면 `ohs.monitor_local: false`로 설정하여 OHS의 로컬 파일·프로세스 점검을 건너뜁니다. DB는 OAS가 연결하는 데이터 계층이며 Admin Lite가 DB OS나 테이블을 직접 조회하지 않습니다.
+
+## 기능
+
+| 화면 | 기능 |
+|---|---|
+| Resources | CPU, 메모리, Swap, 디스크, OAS/OHS 경로, listener, 프로세스 상태 확인 |
+| Catalog | OAS Catalog REST API로 Classic과 DV Catalog 객체를 수집하고 owner·변경일·폴더·ACL 위험을 요약 |
+| Patch | `opatch lsinventory` 기반 패치 수준 조회 |
+| Scripts | `diagnostic_dump.sh`, `exportarchive.sh`의 명령 미리보기와 제한된 실행 |
+| Jobs / Audit | 실행 결과, stdout/stderr, 종료 코드, 로그 경로 이력 |
+| Settings | 현재 적용된 앱·OAS·보안 설정 확인 |
+
+### Catalog 수집 범위
+
+Catalog 수집은 **OAS Catalog REST API만** 사용합니다. 실행 시 `/catalog`가 반환하는 지원 type 목록을 확인한 뒤, 제공되는 type을 순회합니다.
+
+- Classic: `analysis`, `dashboards`, `dashboardpages`, `reports`
+- DV 및 데이터 자산: `workbooks`, `datasets`, `connections`, `dataflows`, `models`, `sequences`
+
+`runcat.sh`와 Catalog DB 직접 조회는 웹앱의 수집 경로에 사용하지 않습니다. REST API는 Web tier를 통해 접근해야 하므로, OAS 관리 포트나 내부 listener를 새로운 REST 공개 경로로 사용하지 마세요. [OAS Catalog REST API](https://docs.oracle.com/en/middleware/bi/analytics-server/oasri/api-catalog.html)
+
+## 요구 사항과 운영 정책
+
+운영 VM에는 다음만 필요합니다.
+
+```text
+Linux, python3 3.6 이상, bash, tar, gzip
 oracle 계정
-OAS / OHS / FMW / OPatch 기존 설치
+OAS / OHS / FMW / OPatch가 설치·기동된 환경
 ```
 
-추가로 설치하지 않아도 되는 항목:
+`pip`, Node.js, 외부 DB, systemd, sudoers, 별도 nginx/apache는 필요하지 않습니다.
 
-```text
-pip package
-Node.js
-외부 DB
-systemd service
-sudoers
-nginx/apache 추가 설치
-```
+앱은 임의 shell 명령을 제공하지 않습니다. Scripts 화면에서 실행 가능한 OAS 스크립트는 다음 두 개로 고정됩니다.
 
-Python 3.6 이상 표준 라이브러리만 사용합니다.
+- `diagnostic_dump.sh`
+- `exportarchive.sh`
 
-## 사전 점검 항목
+## 설치 및 배포
 
-`./scripts/healthcheck.sh`는 고객 환경별 설정값과 필수 실행 조건을 점검합니다.
+### 1. Git clone 설치
 
-점검 범위:
-
-```text
-App runtime: bash, tar, gzip, mkdir, chmod, nohup, python3 3.6+
-Python modules: 표준 라이브러리 sqlite3, http.server, urllib, ssl 등
-App paths: APP_HOME, config, data, logs, backups, bundles, packages 쓰기 권한
-OAS paths: ORACLE_HOME, DOMAIN_HOME, bitools/bin, OPatch 실행 파일
-OAS scripts: app.yaml의 scripts.allowed에 지정된 스크립트 존재 및 실행 권한
-OHS paths: 선택 점검 항목. OHS를 프론트엔드로 쓰는 경우 OHS ORACLE_HOME, OHS DOMAIN_HOME
-Network: OAS Admin Lite listen 주소 사용 가능 여부, 선택 항목으로 OHS HTTP/HTTPS port listen 여부
-Catalog: Catalog REST endpoint URL 형식
-```
-
-필수 OAS 경로 또는 실행 파일이 없으면 `FAIL`로 표시하고, OHS 경로/포트가 없거나 실행 사용자가 `oracle`이 아니면 `WARN`으로 표시합니다. 고객사마다 OAS/OHS 설치 경로가 다르므로 먼저 `app/config/app.yaml`의 `oas`와 `ohs` 값을 실제 환경에 맞춘 뒤 실행하세요.
-
-분리형 구성에서는 앱이 실행되는 **OAS VM 기준**으로 로컬 점검을 수행합니다. DB 서버가 별도 VM이면 이 앱은 DB OS/프로세스를 직접 점검하지 않고, OAS 관리 스크립트와 Catalog REST 연결만 확인합니다. OHS가 다른 Web-tier VM에 있으면 `ohs.monitor_local: false`로 두어 OHS 로컬 경로와 `127.0.0.1:7777` 점검을 건너뜁니다. 이때 Catalog endpoint는 OAS VM에서 접근 가능한 내부 LB/Web-tier 주소(예: `https://bi-internal.example.com`)로 지정하며, healthcheck가 해당 TCP 경로를 확인합니다. OHS 자체의 프로세스와 설치 경로를 점검하려면 OHS VM에서 별도의 인스턴스를 실행하고 `ohs.monitor_local: true`로 설정합니다. 다중 OAS 노드나 클러스터 환경에서는 각 노드에서 온디맨드로 실행해 노드별 OPatch, DOMAIN_HOME, bitools, 프로세스 상태를 확인하는 방식을 권장합니다.
-
-```bash
-./scripts/healthcheck.sh
-```
-
-## 권장 배포 위치
-
-```text
-/u01/oas-admin-lite
-```
-
-OAS와 OHS가 한 VM에 설치되고 도메인·SSL이 아직 없는 현재 환경의 설치·설정·SSH tunnel 접속 절차는 [단일 VM 배포 가이드](docs/DEPLOYMENT_TOPOLOGY.md#단일-vm-배포-oas와-ohs가-같은-서버인-현재-환경)를 참고하세요.
-
-권장 소유자:
-
-```bash
-oracle:oinstall
-```
-
-권장 권한:
-
-```bash
-chmod -R 750 /u01/oas-admin-lite
-```
-
-## Git Clone 방식 배포
-
-고객 서버에서 Git 접근이 가능한 경우, `oracle` 계정으로 직접 clone할 수 있습니다.
+OAS VM에서 `oracle` 계정으로 실행합니다.
 
 ```bash
 su - oracle
@@ -129,333 +89,148 @@ cd /u01
 git clone <REPOSITORY_URL> oas-admin-lite
 cd /u01/oas-admin-lite
 chmod +x scripts/*.sh
+./scripts/install.sh /u01/oas-admin-lite
 ```
 
-설정 파일을 생성합니다.
+`install.sh`는 운영 디렉터리를 만들고 `app/config/app.yaml`이 없으면 설정 샘플을 복사합니다. 기존 `app.yaml`은 덮어쓰지 않습니다.
 
-```bash
-mkdir -p app/config
-cp configs/app.yaml.sample app/config/app.yaml
-vi app/config/app.yaml
-```
+### 2. 설정
 
-주요 설정 예시:
+현재 단일 VM 환경의 최소 설정 예시입니다. 경로는 실제 설치 경로로 바꾸세요.
 
 ```yaml
 server:
   listen: "127.0.0.1:18080"
 
-paths:
-  root: "/u01/oas-admin-lite"
-  data_dir: "/u01/oas-admin-lite/data"
-  log_dir: "/u01/oas-admin-lite/logs"
-  backup_dir: "/u01/oas-admin-lite/backups"
-  bundle_dir: "/u01/oas-admin-lite/bundles"
-  package_dir: "/u01/oas-admin-lite/packages"
-
 oas:
-  oracle_home: "/u01/app/oracle/product/fmw"
-  domain_home: "/u01/app/oracle/config/domains/bi"
-  bitools_bin: "/u01/app/oracle/config/domains/bi/bitools/bin"
-  analytics_url: "https://oas.example.com/analytics"
-  catalog_base_url: "https://bi-internal.example.com"
+  oracle_home: "/u01/app/Oracle/Middleware/Oracle_Home"
+  domain_home: "/u01/data/domains/bi"
+  bitools_bin: "/u01/data/domains/bi/bitools/bin"
+  catalog_base_url: "http://127.0.0.1:7777"
   catalog_api_path: "/api/20210901/catalog"
-  catalog_api_url: ""
-  catalog_username: ""
-  catalog_password: ""
+  catalog_username: "<CATALOG_READ_USER>"
+
+ohs:
+  monitor_local: true
+  oracle_home: "<OHS_ORACLE_HOME>"
+  domain_home: "<OHS_DOMAIN_HOME>"
+  http_port: "7777"
+  https_port: ""
+
+scripts:
+  allowed:
+    - "diagnostic_dump.sh"
+    - "exportarchive.sh"
 ```
 
-초기 점검을 실행합니다.
+Catalog 계정의 비밀번호는 설정 파일 대신 시작 전 환경변수로 전달합니다.
 
 ```bash
+export OAS_ADMIN_LITE_CATALOG_USERNAME="<CATALOG_READ_USER>"
+export OAS_ADMIN_LITE_CATALOG_PASSWORD="<PASSWORD>"
+```
+
+선택적으로 웹앱 Basic Auth를 사용하려면 `security.password_sha256` 또는 `OAS_ADMIN_LITE_PASSWORD_SHA256`를 설정합니다.
+
+### 3. 사전 점검 및 시작
+
+```bash
+cd /u01/oas-admin-lite
 ./scripts/healthcheck.sh
-```
-
-앱을 시작합니다.
-
-```bash
 ./scripts/start.sh
-```
-
-상태 확인:
-
-```bash
 ./scripts/status.sh
 ```
 
-종료:
+`healthcheck.sh`는 Python 실행 환경, 앱 데이터 디렉터리 권한, OAS 경로, OPatch, 허용 스크립트, 선택한 OHS 점검 및 Catalog REST 네트워크 연결을 확인합니다. `18080`이 이미 사용 중이라는 경고는 실행 중인 Admin Lite가 해당 포트를 사용하고 있을 수 있으므로 `./scripts/status.sh`와 `ss -lntp | grep ':18080'`으로 확인하세요.
+
+## 운영 및 사용 방법
+
+### 관리자 접속
+
+관리자 PC에서 SSH tunnel을 엽니다.
 
 ```bash
-./scripts/stop.sh
+ssh -N -L 18080:127.0.0.1:18080 oracle@<OAS_VM_IP>
 ```
 
-## 접속 방식
-
-기본 설정은 로컬 바인딩입니다.
-
-```text
-127.0.0.1:18080
-```
-
-운영자는 SSH tunnel로 접속하는 방식을 권장합니다.
-
-```bash
-ssh -L 18080:127.0.0.1:18080 oracle@oas-server
-```
-
-브라우저에서 접속합니다.
-
-```text
-http://localhost:18080
-```
-
-내부망에서 직접 접속해야 한다면 `app/config/app.yaml`의 listen 값을 조정할 수 있습니다.
-
-```yaml
-server:
-  listen: "0.0.0.0:18080"
-```
-
-단, 이 경우 방화벽과 접근 통제는 고객 운영 정책에 맞게 별도로 관리해야 합니다.
-
-
-Catalog 화면에서 `집계 가능한 object type이 없습니다`가 표시되면, 대부분 `analytics_url`이 OAS 웹 화면이나 로그인 페이지를 가리키고 있는 상태입니다. 실제 카탈로그 목록을 반환하는 REST endpoint가 확인되면 `catalog_api_url`에 별도로 지정하세요.
-
-## Catalog REST 설정
-
-OAS Catalog 현황은 OAS REST endpoint를 호출해 수집합니다. Oracle 문서상 이 REST API는 Web tier 구성 후에만 접근할 수 있으므로, 운영에서는 OAS VM에서 접근 가능한 내부 Web-tier/LB URL을 지정합니다. OAS의 관리 포트나 내부 listener를 REST endpoint로 직접 노출·사용하지 마세요.
-
-Catalog 화면은 Oracle Analytics Server 공식 REST API 문서를 기준으로 구현합니다.
-
-- [Catalog REST Endpoints](https://docs.oracle.com/en/middleware/bi/analytics-server/oasri/api-catalog.html)
-- [Get catalog items](https://docs.oracle.com/en/middleware/bi/analytics-server/oasri/op-20210901-catalog-get.html)
-- [Get catalog items by type](https://docs.oracle.com/en/middleware/bi/analytics-server/oasri/op-20210901-catalog-type-get.html)
-- [Get catalog item ACL](https://docs.oracle.com/en/middleware/bi/analytics-server/oasri/op-20210901-catalog-type-id-actions-getacl-post.html)
-
-수집 실행 시 /catalog에서 지원 type을 확인하고, type별 /catalog/{type} 결과를 요약합니다. ACL 리스크는 과도한 REST 호출을 피하기 위해 일부 자산을 대상으로 /actions/getACL을 조회하는 MVP 방식입니다.
-
-```yaml
-oas:
-  catalog_base_url: "https://bi-internal.example.com"
-  catalog_api_path: "/api/20210901/catalog"
-  catalog_api_url: ""
-  catalog_username: "<OAS_USER>"
-  catalog_password: ""
-```
-
-`catalog_api_url`을 지정하면 `catalog_base_url`과 `catalog_api_path`보다 우선합니다.
-
-웹앱의 Catalog 수집은 OAS Catalog REST API만 사용합니다. REST API의 지원 type 목록을 실행 시 먼저 확인한 뒤, Classic 객체(`analysis`, `dashboards`, `dashboardpages`, `reports`)와 DV 객체(`workbooks`, `datasets`, `connections`, `dataflows`, `models`, `sequences`)를 같은 수집 흐름에서 처리합니다. `runcat.sh`나 Catalog DB 직접 조회는 웹앱의 수집 경로에 포함하지 않습니다. 자세한 분리 배포 및 검증 절차는 [docs/DEPLOYMENT_TOPOLOGY.md](docs/DEPLOYMENT_TOPOLOGY.md)를 참고하세요.
-
-비밀번호는 파일에 저장하지 않고 환경변수로 주는 방식을 권장합니다.
-
-```bash
-export OAS_ADMIN_LITE_CATALOG_USERNAME="<OAS_USER>"
-export OAS_ADMIN_LITE_CATALOG_PASSWORD="<OAS_PASSWORD>"
-./scripts/stop.sh
-./scripts/start.sh
-```
-
-Catalog 화면에서 `Content-Type`이 `text/html`로 표시되면 REST JSON API가 아니라 OAS 화면 또는 로그인 페이지를 받은 상태입니다. 이 경우 endpoint와 인증 정보를 확인해야 합니다.
-## Git Pull 방식 업데이트
-
-Git clone 방식으로 배포한 경우 업데이트는 다음 순서로 진행합니다.
-
-```bash
-su - oracle
-cd /u01/oas-admin-lite
-./scripts/stop.sh
-```
-
-운영 브랜치를 사용하는 경우:
-
-```bash
-git pull --ff-only
-```
-
-태그 기반 배포를 사용하는 경우:
-
-```bash
-git fetch --tags
-git checkout v0.1.0
-```
-
-설정과 디렉터리를 점검합니다.
-
-```bash
-./scripts/healthcheck.sh
-```
-
-앱을 다시 시작합니다.
-
-```bash
-./scripts/start.sh
-```
-
-## Release Package 방식 배포
-
-운영 서버에서 Git 접근을 허용하지 않는 경우, 별도 빌드/관리 서버에서 tar.gz 패키지를 만든 뒤 `/u01/oas-admin-lite/packages/releases`로 복사하는 방식을 사용할 수 있습니다.
-
-패키지 생성:
-
-```bash
-./scripts/package.sh 0.1.0
-```
-
-생성 결과:
-
-```text
-dist/oas-admin-lite-0.1.0.tar.gz
-```
-
-운영 서버에 복사:
-
-```bash
-scp dist/oas-admin-lite-0.1.0.tar.gz oracle@oas-server:/u01/oas-admin-lite/packages/releases/
-```
-
-운영 서버에서 업데이트:
-
-```bash
-su - oracle
-/u01/oas-admin-lite/scripts/update.sh /u01/oas-admin-lite/packages/releases/oas-admin-lite-0.1.0.tar.gz
-/u01/oas-admin-lite/scripts/healthcheck.sh
-/u01/oas-admin-lite/scripts/start.sh
-```
-
-## Rollback
-
-`update.sh`는 기존 `app` 디렉터리를 rollback archive로 저장합니다.
-
-최근 버전으로 롤백:
-
-```bash
-/u01/oas-admin-lite/scripts/rollback.sh
-```
-
-특정 롤백 파일 지정:
-
-```bash
-/u01/oas-admin-lite/scripts/rollback.sh /u01/oas-admin-lite/packages/rollback/app-YYYYMMDD-HHMMSS.tar.gz
-```
-
-## Uninstall
-
-앱 파일만 제거하고 데이터는 유지합니다.
-
-```bash
-/u01/oas-admin-lite/scripts/uninstall.sh
-```
-
-데이터, 로그, 백업까지 제거하려면 다음처럼 실행합니다.
-
-```bash
-KEEP_DATA=0 /u01/oas-admin-lite/scripts/uninstall.sh
-```
-
-## 인증 설정
-
-기본값은 로컬 모드입니다. SSH tunnel만 사용하는 운영 환경에서는 이 방식이 단순합니다.
-
-Basic Auth를 활성화하려면 SHA-256 password hash를 설정합니다.
-
-```yaml
-security:
-  username: "admin"
-  password_sha256: "<sha256-hash>"
-```
-
-또는 환경변수로 설정할 수 있습니다.
-
-```bash
-export OAS_ADMIN_LITE_PASSWORD_SHA256="<sha256-hash>"
-```
-
-## 실행 정책
-
-앱은 임의 shell 명령 실행 기능을 제공하지 않습니다.
-
-허용된 작업만 실행합니다.
-
-- `ORACLE_HOME/OPatch/opatch lsinventory`
-- `bitools/bin` 아래 allowlist 스크립트
-- 서버 리소스 조회용 read-only 명령
-
-패치 경로는 다음 설정 아래에 있어야 합니다.
-
-```yaml
-patch:
-  allowed_patch_dirs:
-    - "/u01/oas-admin-lite/packages/patches"
-    - "/u01/stage/patches"
-```
-
-
-## Scripts 화면 안내
-
-Scripts 화면은 MVP 기준으로 `exportarchive.sh`와 `diagnostic_dump.sh`만 실행합니다. 작업 버튼을 선택하면 실행 명령어 방법과 작업별 입력 영역이 표시됩니다. 스크립트 기준은 Oracle Analytics Server 공식 문서 [About the Scripts for Managing Service Instances](https://docs.oracle.com/en/middleware/bi/analytics-server/administer-oas/scripts-managing-service-instances.html)를 참고하고, diagnostic bundle 수집은 [Collect Diagnostic Bundles](https://docs.oracle.com/en/middleware/bi/analytics-server/administer-oas/collect-diagnostic-bundles.html)를 기준으로 합니다.
-
-- `diagnostic_dump.sh`: Oracle Support 요청 시 제공할 진단 ZIP 번들 생성. `diagnostic_dump.sh <zip file name>` 형식으로 ZIP 파일명을 입력하며, 결과 경로는 `/u01/oas-admin-lite/bundles`입니다.
-- `exportarchive.sh`: Catalog/security/model 산출물을 BAR archive로 export. 결과 경로는 `/u01/oas-admin-lite/backups`입니다.
-
-`명령어 확인`: 입력한 값으로 실행될 명령어를 아래에 표시합니다. 이 단계에서는 스크립트를 실행하지 않습니다. `실행`: 현재 입력값으로 실제 OAS 스크립트를 실행하고 stdout/stderr, exit code, 로그 경로를 Jobs / Audit에 저장합니다. `exportarchive.sh`의 encryption password는 명령어 이력에 남기지 않고 stdin으로 전달합니다. 결과는 Jobs / Audit에서 stdout/stderr와 함께 확인합니다. `importarchive.sh`는 현재 MVP 실행 메뉴에서 제외합니다.
-
-## 개발 및 테스트
-
-로컬 테스트 설정:
-
-```bash
-python3 app/oas_admin_lite.py --config configs/app.local.yaml --check
-```
-
-단위 테스트:
-
-```bash
-python3 -m unittest discover -s tests
-```
-
-문법 체크:
-
-```bash
-python3 -m compileall app tests
-```
-
-로컬 실행:
-
-```bash
-python3 app/oas_admin_lite.py --config configs/app.local.yaml
-```
-
-브라우저:
+브라우저에서 아래 주소로 접속합니다.
 
 ```text
 http://127.0.0.1:18080
 ```
 
-## 현재 구현 상태
+### 화면별 사용 순서
 
-1차 MVP 구현 완료:
+1. **Resources**에서 OAS 경로, OPatch, OHS listener와 프로세스 상태를 확인합니다.
+2. **Catalog**에서 수집을 실행합니다. Classic과 DV 객체 type·건수가 표시되면 REST endpoint와 인증이 정상입니다.
+3. **Patch**에서 현재 적용된 OPatch inventory를 확인합니다.
+4. **Scripts**에서 명령을 먼저 미리보기한 뒤 필요한 경우에만 실행합니다.
+5. **Jobs / Audit**에서 결과와 로그 경로를 확인합니다.
 
-- Python 표준 라이브러리 기반 웹앱
-- 6개 화면 구성
-- SQLite Jobs / Audit 저장
-- OPatch inventory 조회
-- exportarchive/diagnostic_dump allowlist 실행 및 명령어 확인
-- 온디맨드 운영 스크립트
-- Git clone 및 release package 배포 흐름
+Catalog 화면에서 JSON 대신 HTML이 표시되면 REST endpoint가 아닌 로그인·화면 URL을 가리키는 경우가 많습니다. `catalog_base_url`, `catalog_api_path`, 인증 정보를 확인하세요.
 
-추가 구체화 필요:
+실행 로그는 다음 파일에서 확인합니다.
 
-- 고객 OAS 환경의 실제 Catalog REST endpoint, page/limit 정책, ACL 조회 범위 튜닝
-- diagnostic_dump.sh 진단 결과 경로 표시 및 다운로드 동선 강화
-- Catalog Detail CSV/JSON 결과 다운로드
-- 패치 전후 자동 진단/백업 절차 강화
+```bash
+tail -n 100 /u01/oas-admin-lite/logs/app.log
+```
 
-## OAS 문서 기준
+중지와 상태 확인은 다음 명령을 사용합니다.
 
-OAS 관련 기능을 확장할 때는 OBIEE 문서가 아니라 Oracle Analytics Server 문서를 기준으로 확인해야 합니다.
+```bash
+./scripts/stop.sh
+./scripts/status.sh
+```
 
-특히 다음 기능은 Oracle Analytics Server의 service instance 관리 스크립트 문서인 [About the Scripts for Managing Service Instances](https://docs.oracle.com/en/middleware/bi/analytics-server/administer-oas/scripts-managing-service-instances.html)를 기준으로 검증합니다.
+## 업데이트, 롤백 및 제거
 
-- `diagnostic_dump.sh`
-- `exportarchive.sh`
+### Git 업데이트
+
+```bash
+cd /u01/oas-admin-lite
+./scripts/stop.sh
+git pull --ff-only
+./scripts/healthcheck.sh
+./scripts/start.sh
+```
+
+### 릴리스 패키지 업데이트
+
+Git 접근이 불가능한 환경에서는 빌드 서버에서 패키지를 생성합니다.
+
+```bash
+./scripts/package.sh 0.1.0
+```
+
+생성된 `dist/oas-admin-lite-0.1.0.tar.gz`를 운영 서버로 복사한 뒤 실행합니다.
+
+```bash
+./scripts/update.sh /u01/oas-admin-lite/packages/releases/oas-admin-lite-0.1.0.tar.gz
+./scripts/healthcheck.sh
+./scripts/start.sh
+```
+
+업데이트 전 앱 코드의 백업은 `packages/rollback/`에 생성됩니다. 롤백은 다음과 같이 실행합니다.
+
+```bash
+./scripts/rollback.sh
+```
+
+앱만 제거하고 운영 데이터는 유지하려면 다음을 실행합니다.
+
+```bash
+./scripts/uninstall.sh
+```
+
+`KEEP_DATA=0`을 지정하면 앱 데이터·로그·백업도 함께 제거합니다.
+
+## 개발 및 검증
+
+개발 환경에서는 다음을 실행합니다.
+
+```bash
+python3 -m unittest discover -s tests
+python3 -m compileall app tests
+```
+
+OAS 관련 확장은 OBIEE 문서가 아닌 Oracle Analytics Server 문서를 기준으로 검토합니다. 특히 [OAS 서비스 인스턴스 관리 스크립트](https://docs.oracle.com/en/middleware/bi/analytics-server/administer-oas/scripts-managing-service-instances.html)와 [Catalog REST API](https://docs.oracle.com/en/middleware/bi/analytics-server/oasri/api-catalog.html)를 참고하세요.

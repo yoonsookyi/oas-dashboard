@@ -7,7 +7,10 @@ from .command import run_command, run_shell_command, truncate
 from .storage import Job
 
 
-BLOCKED_SCRIPTS = {"importarchive.sh"}
+# Admin Lite intentionally exposes only read-only diagnostics and export.
+# Other bitools scripts remain OAS utilities, but must never become executable
+# through this web application merely by being added to app.yaml.
+PERMITTED_SCRIPTS = ("diagnostic_dump.sh", "exportarchive.sh")
 
 
 class ScriptState(object):
@@ -29,7 +32,8 @@ class ScriptState(object):
 
 
 def allowed_scripts(items):
-    return [item for item in (items or []) if item not in BLOCKED_SCRIPTS]
+    configured = set(items or [])
+    return [item for item in PERMITTED_SCRIPTS if item in configured]
 
 
 class ScriptService(object):
@@ -85,8 +89,6 @@ class ScriptService(object):
             self._run_lock.release()
     def _command(self, script, raw_args):
         script = (script or "").strip()
-        if script in BLOCKED_SCRIPTS:
-            raise ValueError("script is blocked: {0}".format(script))
         if script not in allowed_scripts(self.cfg.scripts.allowed):
             raise ValueError("script is not allowed: {0}".format(script))
         if any(sep in script for sep in ("/", "\\")):

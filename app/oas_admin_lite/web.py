@@ -12,7 +12,7 @@ from urllib.parse import parse_qs, quote, urlparse
 from .catalog import CatalogService
 from .patching import PatchService
 from .resources import ResourceCollector
-from .scripts_runner import ScriptService
+from .scripts_runner import ScriptService, allowed_scripts
 from .storage import JobStore
 
 
@@ -750,7 +750,7 @@ def settings_page(ctx, query):
         ("Backups", cfg.paths.backup_dir),
         ("Bundles", cfg.paths.bundle_dir),
         ("Packages", cfg.paths.package_dir),
-        ("Allowed Scripts", ", ".join(cfg.scripts.allowed)),
+        ("Allowed Scripts", ", ".join(allowed_scripts(cfg.scripts.allowed))),
         ("Patch Directories", ", ".join(cfg.patch.allowed_patch_dirs)),
         ("Auth User", cfg.security.username),
         ("Auth Password", "configured" if cfg.security.password_sha256 else ""),

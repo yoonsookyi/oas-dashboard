@@ -6,6 +6,8 @@ import subprocess
 import time
 from pathlib import Path
 
+from .scripts_runner import allowed_scripts
+
 
 class Check(object):
     def __init__(self, name, value, status, detail=""):
@@ -58,7 +60,7 @@ class ResourceCollector(object):
             self._path_check("bitools/bin", self.cfg.oas.bitools_bin, "OAS 관리 스크립트 경로", executable=True),
             self._path_check("OPatch", os.path.join(self.cfg.oas.oracle_home, "OPatch", "opatch"), "OPatch 실행 파일", executable=True),
         ]
-        for script in getattr(self.cfg.scripts, "allowed", []) or []:
+        for script in allowed_scripts(getattr(self.cfg.scripts, "allowed", [])):
             checks.append(self._path_check("Script {0}".format(script), os.path.join(self.cfg.oas.bitools_bin, script), "허용된 OAS 관리 스크립트", executable=True))
         ohs = getattr(self.cfg, "ohs", None)
         if ohs and getattr(ohs, "monitor_local", False):

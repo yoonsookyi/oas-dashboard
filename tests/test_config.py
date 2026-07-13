@@ -34,7 +34,7 @@ class ConfigTests(unittest.TestCase):
 
     def test_importarchive_is_blocked(self):
         cfg = load_config("configs/app.local.yaml")
-        cfg.scripts.allowed = ["diagnostic_dump.sh", "importarchive.sh", "exportarchive.sh"]
+        cfg.scripts.allowed = ["diagnostic_dump.sh", "datamodel.sh", "importarchive.sh", "exportarchive.sh"]
         self.assertEqual(allowed_scripts(cfg.scripts.allowed), ["diagnostic_dump.sh", "exportarchive.sh"])
         with tempfile.TemporaryDirectory() as tmp:
             store = JobStore(os.path.join(tmp, "test.db"))
