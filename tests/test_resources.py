@@ -50,7 +50,7 @@ class ResourceStatusTests(unittest.TestCase):
 
         self.assertEqual(check.status, "OK")
         self.assertIn("*:7777", check.value)
-        self.assertIn("감지 포트: :7777", check.detail)
+        self.assertEqual(check.detail, "7777: OHS HTTP/REST")
 
     def test_process_check_filters_before_display_limit(self):
         class Result(object):

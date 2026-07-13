@@ -199,8 +199,18 @@ def listener_check():
     lines = [line.strip() for line in proc.stdout.splitlines() if any(pattern in line for pattern in patterns)]
     if not lines:
         return Check("OAS/OHS Listener Ports", "공통 OAS/OHS 포트가 listen 목록에서 감지되지 않았습니다.", "WARN", "점검 대상 포트: {0}".format(", ".join(patterns)))
+    port_labels = {
+        ":7777": "7777: OHS HTTP/REST",
+        ":9500": "9500: WebLogic Administration",
+        ":9502": "9502: OAS managed service",
+        ":7001": "7001: WebLogic listener",
+        ":7002": "7002: WebLogic SSL listener",
+        ":9503": "9503: OAS/WebLogic listener",
+        ":9704": "9704: OAS listener",
+        ":9804": "9804: OAS listener",
+    }
     detected = [pattern for pattern in patterns if any(pattern in line for line in lines)]
-    detail = "감지 포트: {0}; 점검 대상: {1}".format(", ".join(detected), ", ".join(patterns))
+    detail = " · ".join(port_labels[pattern] for pattern in detected)
     return Check("OAS/OHS Listener Ports", "\n".join(lines[:40]), "OK", detail)
 
 
