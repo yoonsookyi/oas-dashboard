@@ -438,14 +438,14 @@ def metric_status_badge(metric):
 
 def metric_high_guidance(name):
     if name == "Load":
-        return "시작: 서버에서 top 또는 ps -eo pid,ppid,cmd,%cpu,%mem --sort=-%cpu | head 로 CPU 상위 프로세스를 확인합니다.\n다음: vmstat 1 5의 wa가 높으면 I/O 병목을 함께 점검하고, 배치·백업·대용량 수집 작업은 종료 또는 시간 조정합니다."
+        return "확인\n• top 또는 CPU 상위 프로세스 확인\n• vmstat 1 5에서 I/O wait(wa) 확인\n조치\n• 배치·백업·대용량 수집 작업 시간 조정"
     if name == "Memory":
-        return "시작: free -h와 ps -eo pid,cmd,%mem,rss --sort=-%mem | head 로 메모리 상위 프로세스를 확인합니다.\n다음: OAS/Java 프로세스의 비정상 증가 여부를 확인하고, 불필요한 작업을 중지한 뒤 지속되면 JVM 메모리 또는 서버 증설을 검토합니다."
+        return "확인\n• free -h로 메모리 여유 확인\n• 메모리 상위 OAS/Java 프로세스 확인\n조치\n• 불필요한 작업 중지 후 JVM·서버 메모리 증설 검토"
     if name == "Swap":
-        return "시작: free -h와 vmstat 1 5를 실행해 si/so가 계속 발생하는지 확인합니다.\n다음: ps -eo pid,cmd,%mem,rss --sort=-%mem | head 로 원인 프로세스를 찾고, 메모리 사용 작업을 조정하거나 JVM/서버 메모리 증설을 검토합니다."
+        return "확인\n• free -h와 vmstat 1 5에서 si/so 지속 여부 확인\n• 메모리 상위 프로세스 확인\n조치\n• 메모리 사용 작업 조정 또는 증설 검토"
     if name.startswith("Disk "):
-        return "시작: df -h로 해당 파일 시스템을 확인하고 du -xhd1 <마운트경로> | sort -h로 큰 디렉터리를 찾습니다.\n다음: 보존 정책에 따라 오래된 로그·진단 번들·백업 파일을 정리하고, 정리 전 삭제 대상과 용량 확보량을 확인합니다."
-    return "시작: 상세 지표와 ps/top 결과로 원인 프로세스를 확인합니다.\n다음: 반복되면 수집 시각, 사용률, 실행 중인 작업을 함께 기록해 OAS 운영 담당자에게 전달합니다."
+        return "확인\n• df -h로 대상 파일 시스템 확인\n• du -xhd1 <마운트경로> | sort -h로 큰 경로 확인\n조치\n• 보존 정책에 따라 로그·진단 번들·백업 파일 정리"
+    return "확인\n• 상세 지표와 ps/top 결과로 원인 확인\n조치\n• 수집 시각·사용률·실행 작업을 기록해 운영 담당자에게 전달"
 
 
 def metric_metadata(metric):
