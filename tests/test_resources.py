@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch
 
 from app.oas_admin_lite.config import AppConfig
-from app.oas_admin_lite.resources import ResourceCollector, catalog_endpoint_check, listener_check, load_metric, process_service_check, process_check, threshold_status
+from app.oas_admin_lite.resources import ResourceCollector, catalog_endpoint_check, listener_check, load_metric, oas_component_statuses, process_service_check, process_check, system_component_check, threshold_status
 
 
 class ResourceStatusTests(unittest.TestCase):
@@ -88,6 +88,24 @@ class ResourceStatusTests(unittest.TestCase):
         self.assertEqual(active.value, "실행 중")
         self.assertEqual(waiting.status, "WARN")
         self.assertEqual(waiting.value, "시작 대기")
+
+    def test_oas_component_statuses_parses_status_script_output(self):
+        class Result(object):
+            stdout = """Name            Type            Machine                   Restart Int Max Restart  Status
+obiccs1         OBICCS          oas2026-mp                3600        5000         RUNNING
+obisch1         OBISCH          oas2026-mp                3600        5000         STARTING
+"""
+
+        cfg = AppConfig()
+        with patch("app.oas_admin_lite.resources.os.path.isfile", return_value=True):
+            with patch("app.oas_admin_lite.resources.os.access", return_value=True):
+                with patch("app.oas_admin_lite.resources.subprocess.run", return_value=Result()):
+                    states, error = oas_component_statuses(cfg)
+
+        self.assertEqual(error, "")
+        self.assertEqual(states["obiccs1"], "RUNNING")
+        self.assertEqual(states["obisch1"], "STARTING")
+        self.assertEqual(system_component_check("Scheduler", "obisch1", states, error, "job scheduling").status, "WARN")
 
     def test_load_metric_exposes_labeled_metadata(self):
         with patch("app.oas_admin_lite.resources.os.getloadavg", return_value=(2.0, 1.5, 1.0)):

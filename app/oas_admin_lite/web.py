@@ -347,7 +347,7 @@ def runtime_readiness(checks):
     stages = [
         ("01", "WebLogic 기반 서비스", "도메인 관리 서비스가 먼저 준비됩니다.", ["Node Manager", "WebLogic AdminServer"]),
         ("02", "OAS Managed Server", "BI Managed Server가 기동되면 OAS 서비스가 초기화됩니다.", ["WebLogic BI Managed Server"]),
-        ("03", "OAS 시스템 컴포넌트", "start.sh 순서: obiccs1 → obis1 → obips1 → obijh1 → obisch1", ["OBICCS (obiccs1)", "OBIS (obis1)", "OBIPS (obips1)", "OBIJH (obijh1)", "OBISCH (obisch1)"]),
+        ("03", "OAS 시스템 컴포넌트", "bitools/bin/status.sh 결과로 obiccs1, obis1, obips1, obijh1, obisch1 상태를 확인합니다.", ["OBICCS (obiccs1)", "OBIS (obis1)", "OBIPS (obips1)", "OBIJH (obijh1)", "OBISCH (obisch1)"]),
         ("04", "REST/OHS 진입점", "Catalog REST 연결이 가능하면 웹 요청 경로가 준비된 것입니다.", ["Catalog REST Endpoint", "OHS HTTP Server"]),
     ]
     flow = "".join(runtime_stage(number, title, description, [by_name[name] for name in names if name in by_name]) for number, title, description, names in stages)

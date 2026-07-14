@@ -92,6 +92,7 @@ class ResourceCollector(object):
     def _service_checks(self):
         """Collect the runtime signals that matter while OAS is starting."""
         processes = runtime_process_text()
+        component_states, status_error = oas_component_statuses(self.cfg)
         checks = [
             process_service_check("Node Manager", processes, ["nodemanager", "node manager"], "WebLogic 기동과 Managed Server 제어"),
             process_service_check("WebLogic AdminServer", processes, ["weblogic.name=adminserver", "weblogic.name=admin_server"], "OAS 도메인 관리 및 Managed Server 기동"),
@@ -102,6 +103,13 @@ class ResourceCollector(object):
             process_service_check("OBIJH (obijh1)", processes, ["javahost", "obijh"], "JavaHost: 시각화·차트 등 Java 기반 처리"),
             process_service_check("OBISCH (obisch1)", processes, ["nqscheduler", "obisch"], "Scheduler: 에이전트와 예약 작업 처리"),
             catalog_endpoint_check(self.cfg),
+        ]
+        checks[3:8] = [
+            system_component_check("OBICCS (obiccs1)", "obiccs1", component_states, status_error, "Cluster Controller: BI system component control"),
+            system_component_check("OBIS (obis1)", "obis1", component_states, status_error, "BI Server query processing"),
+            system_component_check("OBIPS (obips1)", "obips1", component_states, status_error, "Presentation Services request processing"),
+            system_component_check("OBIJH (obijh1)", "obijh1", component_states, status_error, "JavaHost processing"),
+            system_component_check("OBISCH (obisch1)", "obisch1", component_states, status_error, "Scheduler processing"),
         ]
         ohs = getattr(self.cfg, "ohs", None)
         if ohs and getattr(ohs, "monitor_local", False):
@@ -133,6 +141,41 @@ def runtime_process_text():
         return proc.stdout.lower() if proc.returncode == 0 else ""
     except Exception:
         return ""
+
+
+def oas_component_statuses(cfg):
+    """Read OAS system-component states from bitools/status.sh."""
+    status_path = os.path.join(cfg.oas.bitools_bin, "status.sh")
+    if not os.path.isfile(status_path) or not os.access(status_path, os.X_OK):
+        return {}, "status.sh is not executable: {0}".format(status_path)
+    try:
+        proc = subprocess.run(
+            [status_path], cwd=cfg.oas.bitools_bin, universal_newlines=True,
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=60, check=False,
+        )
+    except Exception as exc:
+        return {}, "status.sh failed: {0}".format(exc)
+
+    states = {}
+    pattern = re.compile(r"^\s*(\S+)\s+\S+\s+.*\s+(RUNNING|STARTING|SHUTDOWN|FAILED|UNKNOWN)\s*$", re.IGNORECASE)
+    for line in (proc.stdout or "").splitlines():
+        match = pattern.match(line)
+        if match:
+            states[match.group(1).lower()] = match.group(2).upper()
+    if states:
+        return states, ""
+    output = (proc.stdout or "").strip().replace("\n", " ")
+    return {}, "status.sh output could not be parsed{0}".format(": " + output[:240] if output else "")
+
+
+def system_component_check(name, component, states, status_error, role):
+    state = states.get(component.lower())
+    detail = "Collection: status.sh\nRole: {0}".format(role)
+    if not state:
+        if status_error:
+            detail = "{0}\n{1}".format(detail, status_error)
+        return Check(name, "UNKNOWN", "WARN", detail)
+    return Check(name, state, "OK" if state == "RUNNING" else "WARN", detail)
 
 
 def process_service_check(name, process_text, signatures, role):
