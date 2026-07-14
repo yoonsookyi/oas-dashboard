@@ -20,13 +20,14 @@ class Check(object):
 
 
 class Metric(object):
-    def __init__(self, name, value, unit="", percent=0, status="OK", detail=""):
+    def __init__(self, name, value, unit="", percent=0, status="OK", detail="", metadata=None):
         self.name = name
         self.value = value
         self.unit = unit
         self.percent = percent
         self.status = status
         self.detail = detail
+        self.metadata = metadata or []
 
 
 class Snapshot(object):
@@ -168,7 +169,7 @@ def load_metric():
         cores = os.cpu_count() or 1
         percent = int(min(100, round((load1 / float(cores)) * 100)))
         status = threshold_status(percent, 70, 90)
-        return Metric("Load", "{0:.2f}".format(load1), "1m", percent, status, "수집: os.getloadavg() · 역할: CPU 코어 대비 1분 부하. CPU cores: {0}, 5m: {1:.2f}, 15m: {2:.2f}".format(cores, load5, load15))
+        return Metric("Load", "{0:.2f}".format(load1), "1m", percent, status, metadata=[("수집", "os.getloadavg()"), ("역할", "CPU 코어 대비 1분 부하"), ("CPU cores", str(cores)), ("5m / 15m", "{0:.2f} / {1:.2f}".format(load5, load15))])
     except Exception as exc:
         return Metric("Load", "N/A", "", 0, "WARN", str(exc))
 
@@ -182,7 +183,7 @@ def memory_metric():
     used = total - available
     percent = int(round((used / float(total)) * 100))
     status = threshold_status(percent, 75, 90)
-    return Metric("Memory", human_kb(used), "/ {0}".format(human_kb(total)), percent, status, "수집: /proc/meminfo · 역할: 사용 가능 메모리. Available: {0}".format(human_kb(available)))
+    return Metric("Memory", human_kb(used), "/ {0}".format(human_kb(total)), percent, status, metadata=[("수집", "/proc/meminfo"), ("역할", "사용 가능 메모리 기준 사용량"), ("Available", human_kb(available))])
 
 
 def swap_metric():
@@ -194,7 +195,7 @@ def swap_metric():
     used = total - free
     percent = int(round((used / float(total)) * 100))
     status = threshold_status(percent, 40, 75)
-    return Metric("Swap", human_kb(used), "/ {0}".format(human_kb(total)), percent, status, "수집: /proc/meminfo · 역할: swap 여유 공간. Free: {0}".format(human_kb(free)))
+    return Metric("Swap", human_kb(used), "/ {0}".format(human_kb(total)), percent, status, metadata=[("수집", "/proc/meminfo"), ("역할", "swap 사용량 및 여유 공간"), ("Free", human_kb(free))])
 
 
 def filesystem_metric(path):
@@ -203,7 +204,7 @@ def filesystem_metric(path):
     usage = shutil.disk_usage(path)
     percent = int(round((usage.used / float(usage.total)) * 100))
     status = threshold_status(percent, 75, 90)
-    return Metric("Disk {0}".format(path), human_bytes(usage.used), "/ {0}".format(human_bytes(usage.total)), percent, status, "수집: shutil.disk_usage({0}) · 역할: OAS 및 Admin Lite 운영 파일시스템 여유 공간. Free: {1}".format(path, human_bytes(usage.free)))
+    return Metric("Disk {0}".format(path), human_bytes(usage.used), "/ {0}".format(human_bytes(usage.total)), percent, status, metadata=[("수집", "shutil.disk_usage({0})".format(path)), ("역할", "OAS 및 Admin Lite 운영 파일시스템 여유 공간"), ("Free", human_bytes(usage.free))])
 
 
 def meminfo():

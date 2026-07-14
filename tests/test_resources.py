@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch
 
 from app.oas_admin_lite.config import AppConfig
-from app.oas_admin_lite.resources import ResourceCollector, catalog_endpoint_check, listener_check, process_service_check, process_check, threshold_status
+from app.oas_admin_lite.resources import ResourceCollector, catalog_endpoint_check, listener_check, load_metric, process_service_check, process_check, threshold_status
 
 
 class ResourceStatusTests(unittest.TestCase):
@@ -88,6 +88,15 @@ class ResourceStatusTests(unittest.TestCase):
         self.assertEqual(active.value, "실행 중")
         self.assertEqual(waiting.status, "WARN")
         self.assertEqual(waiting.value, "시작 대기")
+
+    def test_load_metric_exposes_labeled_metadata(self):
+        with patch("app.oas_admin_lite.resources.os.getloadavg", return_value=(2.0, 1.5, 1.0)):
+            with patch("app.oas_admin_lite.resources.os.cpu_count", return_value=4):
+                metric = load_metric()
+
+        self.assertEqual(metric.percent, 50)
+        self.assertIn(("수집", "os.getloadavg()"), metric.metadata)
+        self.assertIn(("CPU cores", "4"), metric.metadata)
 
     def test_catalog_endpoint_check_uses_configured_rest_path(self):
         cfg = AppConfig()

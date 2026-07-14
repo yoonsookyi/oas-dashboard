@@ -291,13 +291,12 @@ def resources_page(ctx, query):
     resource_rows = "".join(check_row(c, value_second=False) for c in snap.resource_checks)
     content = """
 <section class="panel">
-  <div class="panel-head"><h2>서버 식별 정보</h2><a class="button secondary" href="/resources">새로고침</a></div>
-  {snapshot}
-</section>
-<section class="panel">
-  <div class="panel-head"><h2>서버 리소스 요약</h2></div>
-  {legend}
+  <div class="panel-head"><h2>서버 상태 및 리소스 요약</h2><a class="button secondary" href="/resources">새로고침</a></div>
+  <div class="resource-summary-identifiers">{snapshot}</div>
+  <div class="resource-summary-divider"></div>
+  <h3 class="resource-summary-title">서버 리소스</h3>
   <div class="metric-grid">{metric_cards}</div>
+  {legend}
 </section>
 <section class="panel">
   <div class="panel-head"><div><h2>OAS 서비스 기동 현황</h2><p class="muted">아래 리스너 및 프로세스 상세 점검을 OAS 기동 순서로 요약합니다.</p></div><a class="button secondary" href="/resources">상태 새로고침</a></div>
@@ -390,14 +389,22 @@ def metric_card(metric):
         percent = 0
     if percent > 100:
         percent = 100
+    metadata = metric_metadata(metric)
     return """
     <div class="metric-card {status}">
       <div class="metric-head"><span>{name}</span>{badge}</div>
       <div class="metric-value"><strong>{value}</strong><span>{unit}</span></div>
-      <div class="meter"><span style="width:{percent}%"></span></div>
-      <div class="metric-foot"><span>{percent}%</span><span>{detail}</span></div>
+      <div class="meter"><span style="width:{percent}%"></span><b>{percent}%</b></div>
+      {metadata}
     </div>
-    """.format(status=esc(metric.status), name=esc(metric.name), badge=badge(metric.status), value=esc(metric.value), unit=esc(metric.unit), percent=percent, detail=esc(metric.detail))
+    """.format(status=esc(metric.status), name=esc(metric.name), badge=badge(metric.status), value=esc(metric.value), unit=esc(metric.unit), percent=percent, metadata=metadata)
+
+
+def metric_metadata(metric):
+    rows = getattr(metric, "metadata", None) or []
+    if not rows and metric.detail:
+        rows = [("상세", metric.detail)]
+    return '<dl class="metric-meta">{0}</dl>'.format("".join("<dt>{0}</dt><dd>{1}</dd>".format(esc(label), esc(value)) for label, value in rows)) if rows else ""
 
 def catalog_page(ctx, query):
     summary = ctx.catalog.last_summary()

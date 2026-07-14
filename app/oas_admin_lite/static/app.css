@@ -192,6 +192,9 @@ h3 {
   gap: 7px 14px;
   margin-bottom: 14px;
 }
+.resource-summary-identifiers .kv { margin-bottom: 0; }
+.resource-summary-divider { height: 1px; margin: 16px 0 14px; background: var(--line); }
+.resource-summary-title { margin-bottom: 10px; color: #334155; font-size: 14px; }
 .kv.compact { grid-template-columns: 150px minmax(0, 1fr); }
 .kv dt {
   color: var(--muted);
@@ -419,13 +422,15 @@ textarea:focus {
 .metric-value { display: flex; align-items: baseline; gap: 6px; margin: 12px 0 8px; }
 .metric-value strong { font-size: 24px; line-height: 1; letter-spacing: 0; }
 .metric-value span { color: var(--muted); font-size: 12px; }
-.meter { height: 9px; border-radius: 999px; background: #e8eef5; overflow: hidden; }
+.meter { position: relative; height: 18px; border-radius: 999px; background: #e8eef5; overflow: hidden; }
 .meter span { display: block; height: 100%; border-radius: inherit; background: var(--green); }
+.meter b { position: absolute; inset: 0; display: grid; place-items: center; color: #1f2937; font-size: 10px; line-height: 1; text-shadow: 0 1px rgba(255, 255, 255, 0.65); }
 .metric-card.WARN .meter span { background: var(--amber); }
 .metric-card.FAILED .meter span,
 .metric-card.HIGH .meter span { background: var(--red); }
-.metric-foot { margin-top: 8px; align-items: flex-start; color: var(--muted); font-size: 12px; }
-.metric-foot span:last-child { text-align: right; overflow-wrap: anywhere; }
+.metric-meta { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 5px 10px; margin: 11px 0 0; color: var(--muted); font-size: 11px; }
+.metric-meta dt { color: #64748b; font-weight: 800; }
+.metric-meta dd { min-width: 0; margin: 0; color: #475569; overflow-wrap: anywhere; }
 
 .runtime-summary { display: grid; grid-template-columns: minmax(180px, auto) minmax(180px, 1fr); align-items: center; gap: 18px; margin-bottom: 14px; padding: 13px 14px; border: 1px solid #bde3cc; border-radius: 8px; background: #f3fbf6; }
 .runtime-summary.WARN { border-color: #f2d58b; background: #fffaf0; }
