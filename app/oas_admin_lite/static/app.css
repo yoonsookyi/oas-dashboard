@@ -429,7 +429,7 @@ textarea:focus {
 .metric-card.HIGH .meter span { background: var(--red); }
 .metric-advice-wrap { position: relative; }
 .metric-advice-toggle { min-height: 0; padding: 5px 9px; border: 0; cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 800; line-height: 1; }
-.metric-advice { position: absolute; z-index: 2; top: calc(100% + 7px); left: 0; width: min(340px, calc(100vw - 32px)); padding: 10px; border: 1px solid #f0bcc1; border-radius: 7px; background: #fff8f8; color: #7f2530; font-size: 11px; font-weight: 650; line-height: 1.5; white-space: pre-line; box-shadow: var(--shadow); }
+.metric-advice { position: absolute; z-index: 2; top: calc(100% + 7px); left: 0; width: min(340px, calc(100vw - 32px)); padding: 10px; border: 1px solid #f0bcc1; border-radius: 7px; background: #fff8f8; color: #374151; font-size: 11px; font-weight: 650; line-height: 1.5; white-space: pre-line; box-shadow: var(--shadow); }
 .metric-meta { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 5px 10px; margin: 11px 0 0; color: var(--muted); font-size: 11px; }
 .metric-meta dt { color: #64748b; font-weight: 800; }
 .metric-meta dd { min-width: 0; margin: 0; color: #475569; overflow-wrap: anywhere; }

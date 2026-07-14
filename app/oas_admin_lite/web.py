@@ -438,14 +438,14 @@ def metric_status_badge(metric):
 
 def metric_high_guidance(name):
     if name == "Load":
-        return "확인\n• top 또는 CPU 상위 프로세스 확인\n• vmstat 1 5에서 I/O wait(wa) 확인\n조치\n• 배치·백업·대용량 수집 작업 시간 조정"
+        return "[확인]\n• top 또는 CPU 상위 프로세스 확인\n• vmstat 1 5에서 I/O wait(wa) 확인\n[조치]\n• 배치·백업·대용량 수집 작업 시간 조정"
     if name == "Memory":
-        return "확인\n• free -h로 메모리 여유 확인\n• 메모리 상위 OAS/Java 프로세스 확인\n조치\n• 불필요한 작업 중지 후 JVM·서버 메모리 증설 검토"
+        return "[확인]\n• free -h로 메모리 여유 확인\n• 메모리 상위 OAS/Java 프로세스 확인\n[조치]\n• 불필요한 작업 중지 후 JVM·서버 메모리 증설 검토"
     if name == "Swap":
-        return "확인\n• free -h와 vmstat 1 5에서 si/so 지속 여부 확인\n• 메모리 상위 프로세스 확인\n조치\n• 메모리 사용 작업 조정 또는 증설 검토"
+        return "[확인]\n• free -h와 vmstat 1 5에서 si/so 지속 여부 확인\n• 메모리 상위 프로세스 확인\n[조치]\n• 메모리 사용 작업 조정 또는 증설 검토"
     if name.startswith("Disk "):
-        return "확인\n• df -h로 대상 파일 시스템 확인\n• du -xhd1 <마운트경로> | sort -h로 큰 경로 확인\n조치\n• 보존 정책에 따라 로그·진단 번들·백업 파일 정리"
-    return "확인\n• 상세 지표와 ps/top 결과로 원인 확인\n조치\n• 수집 시각·사용률·실행 작업을 기록해 운영 담당자에게 전달"
+        return "[확인]\n• df -h로 대상 파일 시스템 확인\n• du -xhd1 <마운트경로> | sort -h로 큰 경로 확인\n[조치]\n• 보존 정책에 따라 로그·진단 번들·백업 파일 정리"
+    return "[확인]\n• 상세 지표와 ps/top 결과로 원인 확인\n[조치]\n• 수집 시각·사용률·실행 작업을 기록해 운영 담당자에게 전달"
 
 
 def metric_metadata(metric):
