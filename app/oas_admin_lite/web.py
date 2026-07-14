@@ -647,12 +647,11 @@ def scripts_page(ctx, query):
       <section class="script-step input-step">
         <div class="script-step-head"><span class="step-number">1</span><div><h3>파라미터 입력</h3></div></div>
         <div class="script-form-grid">{fields}</div>
-        <div class="actions"><button formaction="/scripts/preview" type="submit" class="secondary">입력 완료(명령어 확인)</button></div>
+        <div class="actions input-actions"><button formaction="/scripts/preview" type="submit" class="secondary">입력 완료(명령어 확인)</button></div>
       </section>
       <section class="script-step command-step">
         <div class="script-step-head"><span class="step-number">2</span><div><h3>명령어 확인 및 실행</h3><p>쉘 스크립트와 입력 파라미터가 합쳐진 명령어를 확인한 뒤 실행합니다.</p></div></div>
-        {command_box}
-        <div class="actions script-run-actions"><button formaction="/scripts/run" type="submit" class="danger" data-running-label="실행 중...">실행</button></div>
+        <div class="command-execution-row">{command_box}<div class="actions script-run-actions"><button formaction="/scripts/run" type="submit" class="danger" data-running-label="실행 중...">실행</button></div></div>
         <div class="script-running-status" data-script-running-status role="status" aria-live="polite" hidden>스크립트를 실행 중입니다. 완료될 때까지 기다려 주세요.</div>
         {recent_result}
       </section>

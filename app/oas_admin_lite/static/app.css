@@ -828,16 +828,10 @@ textarea:focus {
 .script-form-grid .service-instance-field,
 .script-form-grid .export-dir-field,
 .script-form-grid label:has(input[name="stdin_file"]) {
-  padding: 9px;
-  border: 1px solid #bde3cc;
-  border-radius: 7px;
-  background: #f3fbf6;
+  color: #176b3a;
 }
 .script-form-grid label:has(input[name="export_options"]) {
-  padding: 9px;
-  border: 1px solid #cbd5e1;
-  border-radius: 7px;
-  background: #f8fafc;
+  color: #64748b;
 }
 .script-form-grid .service-instance-field input,
 .script-form-grid .export-dir-field input,
@@ -862,8 +856,15 @@ textarea:focus {
 .script-run-panel .actions {
   margin: 0;
 }
+.input-actions { justify-content: flex-end; margin-top: 2px; }
+.command-execution-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; }
+.command-execution-row .command-preview { grid-column: auto; }
 .script-run-actions {
   justify-content: flex-end;
+  align-self: center;
+}
+.script-run-actions button {
+  min-width: 84px;
 }
 .script-run-panel .result {
   margin-top: 0;
@@ -995,6 +996,8 @@ textarea:focus {
   .status-legend span { display: grid; grid-template-columns: auto 1fr; }
   .panel-head .muted { max-width: 100%; overflow-wrap: anywhere; }
   .script-option { min-height: 78px; }
+  .command-execution-row { grid-template-columns: 1fr; }
+  .script-run-actions { justify-content: flex-end; }
 }
 
 @media (max-width: 620px) {
