@@ -441,20 +441,20 @@ textarea:focus {
 .runtime-meter span { display: block; height: 100%; border-radius: inherit; background: var(--green); }
 .runtime-summary.WARN .runtime-meter { background: #f5e7bd; }
 .runtime-summary.WARN .runtime-meter span { background: var(--amber); }
-.runtime-flow { display: grid; gap: 10px; }
+.runtime-flow { display: grid; grid-template-columns: repeat(4, minmax(220px, 1fr)); gap: 10px; align-items: start; min-width: 910px; }
 .runtime-stage { padding: 12px; border: 1px solid var(--line); border-left: 4px solid #cbd5e1; border-radius: 8px; background: var(--surface); }
 .runtime-stage.OK { border-left-color: var(--green); }
 .runtime-stage.WARN { border-left-color: var(--amber); }
-.runtime-stage-head { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; align-items: start; gap: 9px; }
+.runtime-stage-head { display: grid; grid-template-columns: 30px minmax(0, 1fr); align-items: start; gap: 9px; }
 .runtime-stage-number { display: grid; width: 28px; height: 28px; place-items: center; border-radius: 50%; background: #e8eef5; color: #475569; font-size: 11px; font-weight: 850; }
 .runtime-stage.OK .runtime-stage-number { background: #e5f3ec; color: var(--green); }
 .runtime-stage.WARN .runtime-stage-number { background: #fff2dd; color: var(--amber); }
 .runtime-stage-head h3 { margin: 1px 0 3px; color: #334155; font-size: 14px; }
 .runtime-stage-head p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.4; }
-.runtime-stage-state { padding-top: 3px; color: var(--muted); font-size: 12px; font-weight: 800; white-space: nowrap; }
+.runtime-stage-state { grid-column: 2; padding-top: 0; color: var(--muted); font-size: 12px; font-weight: 800; white-space: nowrap; }
 .runtime-stage.OK .runtime-stage-state { color: var(--green); }
 .runtime-stage.WARN .runtime-stage-state { color: var(--amber); }
-.runtime-stage-services { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; margin: 10px 0 0 39px; }
+.runtime-stage-services { display: grid; grid-template-columns: 1fr; gap: 8px; margin: 12px 0 0; }
 .runtime-service { display: flex; justify-content: space-between; gap: 10px; min-width: 0; padding: 9px 10px; border: 1px solid var(--line); border-radius: 6px; background: #fbfdff; }
 .runtime-service.OK { border-color: #bde3cc; }
 .runtime-service strong, .runtime-service span { display: block; color: #334155; font-size: 12px; font-weight: 800; }
