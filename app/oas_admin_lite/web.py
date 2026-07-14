@@ -389,15 +389,16 @@ def metric_card(metric):
         percent = 0
     if percent > 100:
         percent = 100
+    label_position = "ON_FILL" if percent >= 50 else "OFF_FILL"
     metadata = metric_metadata(metric)
     return """
     <div class="metric-card {status}">
       <div class="metric-head"><span>{name}</span>{badge}</div>
       <div class="metric-value"><strong>{value}</strong><span>{unit}</span></div>
-      <div class="meter"><span style="width:{percent}%"></span><b>{percent}%</b></div>
+      <div class="meter"><span style="width:{percent}%"></span><b class="meter-label {label_position}" style="left:{percent}%">{percent}%</b></div>
       {metadata}
     </div>
-    """.format(status=esc(metric.status), name=esc(metric.name), badge=badge(metric.status), value=esc(metric.value), unit=esc(metric.unit), percent=percent, metadata=metadata)
+    """.format(status=esc(metric.status), name=esc(metric.name), badge=badge(metric.status), value=esc(metric.value), unit=esc(metric.unit), percent=percent, label_position=label_position, metadata=metadata)
 
 
 def metric_metadata(metric):

@@ -366,11 +366,7 @@ textarea:focus {
   display: flex;
   flex-wrap: wrap;
   gap: 8px 14px;
-  margin: 0 0 14px;
-  padding: 11px 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface-alt);
+  margin: 14px 0 0;
   color: #475569;
   font-size: 12px;
 }
@@ -422,9 +418,11 @@ textarea:focus {
 .metric-value { display: flex; align-items: baseline; gap: 6px; margin: 12px 0 8px; }
 .metric-value strong { font-size: 24px; line-height: 1; letter-spacing: 0; }
 .metric-value span { color: var(--muted); font-size: 12px; }
-.meter { position: relative; height: 18px; border-radius: 999px; background: #e8eef5; overflow: hidden; }
+.meter { position: relative; height: 18px; border-radius: 999px; background: #e8eef5; }
 .meter span { display: block; height: 100%; border-radius: inherit; background: var(--green); }
-.meter b { position: absolute; inset: 0; display: grid; place-items: center; color: #1f2937; font-size: 10px; line-height: 1; text-shadow: 0 1px rgba(255, 255, 255, 0.65); }
+.meter-label { position: absolute; top: 50%; z-index: 1; font-size: 10px; font-weight: 800; line-height: 1; white-space: nowrap; }
+.meter-label.ON_FILL { color: #fff; text-shadow: 0 1px rgba(15, 23, 42, 0.35); transform: translate(calc(-100% - 6px), -50%); }
+.meter-label.OFF_FILL { color: #1f2937; text-shadow: 0 1px rgba(255, 255, 255, 0.85); transform: translate(6px, -50%); }
 .metric-card.WARN .meter span { background: var(--amber); }
 .metric-card.FAILED .meter span,
 .metric-card.HIGH .meter span { background: var(--red); }
