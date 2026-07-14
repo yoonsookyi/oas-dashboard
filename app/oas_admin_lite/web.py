@@ -634,7 +634,7 @@ def scripts_page(ctx, query):
 <div class="script-workbench">
   <section class="panel script-info-panel">
     <div class="panel-head script-picker-head">
-      <div><h2>{label}</h2><p class="muted">OAS 운영에 필요한 스크립트를 선택하고 실행 기준을 확인합니다.</p></div>
+      <div><h2>{label}</h2><p class="muted">{purpose}</p></div>
       <span class="tag">{script}</span>
     </div>
     {picker}
@@ -665,6 +665,7 @@ def scripts_page(ctx, query):
         bitools=esc(state.get("bitools_bin", "")),
         picker=script_picker(actions, selected["script"]),
         label=esc(selected["label"]),
+        purpose=esc(selected.get("purpose", "")),
         script=esc(selected["script"]),
         mode=esc(selected["mode"]),
         brief=script_brief(selected),
@@ -715,14 +716,12 @@ def script_last_command(state, script):
 def script_brief(action):
     return """
     <div class="script-brief">
-      <section class="script-info-block"><h3>목적</h3><p>{purpose}</p></section>
       <section class="script-info-block"><h3>실행 구문 형식</h3><pre>{method}</pre></section>
       <section class="script-info-block"><h3>필수 파라미터</h3>{required}</section>
       <section class="script-info-block"><h3>옵션 파라미터</h3>{optional}</section>
       <section class="script-info-block caution"><h3>주의사항</h3>{cautions}</section>
     </div>
     """.format(
-        purpose=esc(action.get("purpose", "")),
         method=esc(action.get("method", "")),
         required=script_list(action.get("required") or []),
         optional=script_list(action.get("optional") or []),
