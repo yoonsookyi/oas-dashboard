@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch
 
 from app.oas_admin_lite.config import AppConfig
-from app.oas_admin_lite.resources import ResourceCollector, listener_check, process_check, threshold_status
+from app.oas_admin_lite.resources import ResourceCollector, catalog_endpoint_check, listener_check, process_service_check, process_check, threshold_status
 
 
 class ResourceStatusTests(unittest.TestCase):
@@ -79,6 +79,27 @@ class ResourceStatusTests(unittest.TestCase):
         self.assertIn("OHS HTTP Server", check.value)
         self.assertIn("명령: ps -eo pid,ppid,comm,args", check.detail)
         self.assertIn("\n역할:", check.detail)
+
+    def test_runtime_process_service_check_shows_starting_state(self):
+        active = process_service_check("OAS BI Server", "/u01/bi/bin/obis1", ["obis"], "query processing")
+        waiting = process_service_check("OAS JavaHost", "", ["javahost"], "java processing")
+
+        self.assertEqual(active.status, "OK")
+        self.assertEqual(active.value, "실행 중")
+        self.assertEqual(waiting.status, "WARN")
+        self.assertEqual(waiting.value, "시작 대기")
+
+    def test_catalog_endpoint_check_uses_configured_rest_path(self):
+        cfg = AppConfig()
+        cfg.oas.catalog_base_url = "http://127.0.0.1:7777"
+        cfg.oas.catalog_api_path = "/api/20210901/catalog"
+
+        with patch("app.oas_admin_lite.resources.socket.create_connection") as connect:
+            connect.return_value.close.return_value = None
+            check = catalog_endpoint_check(cfg)
+
+        self.assertEqual(check.status, "OK")
+        self.assertIn("127.0.0.1:7777", check.value)
 
 
 if __name__ == "__main__":

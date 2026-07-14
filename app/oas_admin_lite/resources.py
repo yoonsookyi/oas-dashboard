@@ -2,9 +2,11 @@ import os
 import platform
 import re
 import shutil
+import socket
 import subprocess
 import time
 from pathlib import Path
+from urllib.parse import urlparse
 
 from .scripts_runner import allowed_scripts
 
@@ -28,15 +30,16 @@ class Metric(object):
 
 
 class Snapshot(object):
-    def __init__(self, hostname, os_name, arch, checked_at, oas_checks, resource_checks, metrics):
+    def __init__(self, hostname, os_name, arch, checked_at, oas_checks, service_checks, resource_checks, metrics):
         self.hostname = hostname
         self.os_name = os_name
         self.arch = arch
         self.checked_at = checked_at
         self.oas_checks = oas_checks
+        self.service_checks = service_checks
         self.resource_checks = resource_checks
         self.metrics = metrics
-        self.checks = oas_checks + resource_checks
+        self.checks = oas_checks + service_checks + resource_checks
 
 
 class ResourceCollector(object):
@@ -46,12 +49,14 @@ class ResourceCollector(object):
     def snapshot(self):
         oas_checks = self._oas_checks()
         if platform.system().lower() == "linux":
+            service_checks = self._service_checks()
             metrics = self._linux_metrics()
             resource_checks = self._linux_checks()
         else:
+            service_checks = [Check("OAS/OHS Runtime", platform.system(), "WARN", "Linux 서버에서만 서비스 상태를 수집합니다.")]
             metrics = [Metric("Runtime OS", platform.system(), "", 0, "WARN", "운영 대상은 Linux입니다. 현재 환경에서는 일부 지표가 제한됩니다.")]
             resource_checks = [Check("Runtime OS", platform.system(), "WARN", "운영 대상은 Linux입니다. 현재 환경에서는 일부 OS 점검이 제한됩니다.")]
-        return Snapshot(platform.node(), platform.system(), platform.machine(), time.time(), oas_checks, resource_checks, metrics)
+        return Snapshot(platform.node(), platform.system(), platform.machine(), time.time(), oas_checks, service_checks, resource_checks, metrics)
 
     def _oas_checks(self):
         checks = [
@@ -83,6 +88,25 @@ class ResourceCollector(object):
             return Check(name, path, "WARN", "{0}; 실행 권한 없음".format(context))
         return Check(name, path, "OK", context)
 
+    def _service_checks(self):
+        """Collect the runtime signals that matter while OAS is starting."""
+        processes = runtime_process_text()
+        checks = [
+            process_service_check("Node Manager", processes, ["nodemanager", "node manager"], "WebLogic 기동과 Managed Server 제어"),
+            process_service_check("WebLogic AdminServer", processes, ["weblogic.name=adminserver", "weblogic.name=admin_server"], "OAS 도메인 관리 및 Managed Server 기동"),
+            process_service_check("WebLogic BI Managed Server", processes, ["bi_server"], "OAS 애플리케이션 서비스 구동"),
+            process_service_check("OBICCS (obiccs1)", processes, ["obiccs"], "Cluster Controller: BI 시스템 컴포넌트 제어"),
+            process_service_check("OBIS (obis1)", processes, ["nqsserver", "obis1"], "BI Server: 논리 SQL 및 분석 질의 처리"),
+            process_service_check("OBIPS (obips1)", processes, ["sawserver", "obips"], "Presentation Services: Analytics/Classic 웹 요청 처리"),
+            process_service_check("OBIJH (obijh1)", processes, ["javahost", "obijh"], "JavaHost: 시각화·차트 등 Java 기반 처리"),
+            process_service_check("OBISCH (obisch1)", processes, ["nqscheduler", "obisch"], "Scheduler: 에이전트와 예약 작업 처리"),
+            catalog_endpoint_check(self.cfg),
+        ]
+        ohs = getattr(self.cfg, "ohs", None)
+        if ohs and getattr(ohs, "monitor_local", False):
+            checks.append(process_service_check("OHS HTTP Server", processes, ["httpd", "/ohs/"], "HTTP/REST 요청 프록시 및 전달"))
+        return checks
+
     def _linux_metrics(self):
         metrics = []
         metrics.append(load_metric())
@@ -100,6 +124,42 @@ class ResourceCollector(object):
             process_check(),
         ]
         return checks
+
+
+def runtime_process_text():
+    try:
+        proc = subprocess.run(["ps", "-eo", "args"], universal_newlines=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=5, check=False)
+        return proc.stdout.lower() if proc.returncode == 0 else ""
+    except Exception:
+        return ""
+
+
+def process_service_check(name, process_text, signatures, role):
+    active = any(signature in process_text for signature in signatures)
+    state = "실행 중" if active else "시작 대기"
+    status = "OK" if active else "WARN"
+    return Check(name, state, status, "수집: ps -eo args\n역할: {0}".format(role))
+
+
+def catalog_endpoint_check(cfg):
+    oas = cfg.oas
+    endpoint = (getattr(oas, "catalog_api_url", "") or "").strip()
+    if not endpoint:
+        base = (getattr(oas, "catalog_base_url", "") or "").strip()
+        path = (getattr(oas, "catalog_api_path", "") or "").strip()
+        endpoint = base.rstrip("/") + "/" + path.lstrip("/") if base else ""
+    parsed = urlparse(endpoint)
+    host = parsed.hostname
+    port = parsed.port or (443 if parsed.scheme == "https" else 80)
+    if not host:
+        return Check("Catalog REST Endpoint", "설정 필요", "WARN", "수집: TCP 연결 확인\n역할: OAS/OHS를 통한 Catalog REST 수집 경로 확인")
+    target = "{0}:{1}".format(host, port)
+    try:
+        conn = socket.create_connection((host, port), timeout=3)
+        conn.close()
+        return Check("Catalog REST Endpoint", "연결 가능 ({0})".format(target), "OK", "수집: TCP 연결 확인\n역할: OAS/OHS를 통한 Catalog REST 수집 경로 확인")
+    except Exception:
+        return Check("Catalog REST Endpoint", "연결 대기 ({0})".format(target), "WARN", "수집: TCP 연결 확인\n역할: OAS/OHS를 통한 Catalog REST 수집 경로 확인")
 
 
 def load_metric():

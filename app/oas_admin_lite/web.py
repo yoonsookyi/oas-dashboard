@@ -286,6 +286,7 @@ def nav(active):
 def resources_page(ctx, query):
     snap = ctx.resources.snapshot()
     metric_cards = "".join(metric_card(metric) for metric in snap.metrics)
+    readiness = runtime_readiness(snap.service_checks)
     oas_rows = "".join(check_row(c, value_second=False) for c in snap.oas_checks)
     resource_rows = "".join(check_row(c, value_second=False) for c in snap.resource_checks)
     content = """
@@ -299,14 +300,14 @@ def resources_page(ctx, query):
   <div class="metric-grid">{metric_cards}</div>
 </section>
 <section class="panel">
-  <div class="panel-head"><h2>OAS/OHS 런타임 경로</h2></div>
-  <table><thead><tr><th>항목</th><th>상태</th><th>값</th><th>상세</th></tr></thead><tbody>{oas_rows}</tbody></table>
+  <div class="panel-head"><div><h2>OAS 서비스 기동 현황</h2><p class="muted">아래 리스너 및 프로세스 상세 점검을 OAS 기동 순서로 요약합니다.</p></div><a class="button secondary" href="/resources">상태 새로고침</a></div>
+  {readiness}
 </section>
 <section class="panel">
   <div class="panel-head"><h2>리스너 및 프로세스 상세</h2></div>
   <table><thead><tr><th>항목</th><th>상태</th><th>값</th><th>상세</th></tr></thead><tbody>{resource_rows}</tbody></table>
 </section>
-""".format(snapshot=snapshot_kv(snap), legend=metric_status_legend(), metric_cards=metric_cards, oas_rows=oas_rows, resource_rows=resource_rows)
+""".format(snapshot=snapshot_kv(snap), legend=metric_status_legend(), metric_cards=metric_cards, readiness=readiness, oas_rows=oas_rows, resource_rows=resource_rows)
     return layout(ctx, "Resources", "resources", content, query)
 
 def path_card(check):
@@ -329,6 +330,58 @@ def metric_status_legend():
       <span><strong class="status-word HIGH">HIGH</strong> 리소스 사용률이 높은 상태입니다. 현재 성능 영향 여부는 si/so, I/O wait 등 추가 지표와 함께 확인합니다.</span>
     </div>
     """
+
+
+def runtime_readiness(checks):
+    total = len(checks)
+    ready = len([check for check in checks if check.status == "OK"])
+    if ready == total:
+        headline = "서비스 준비 완료"
+        status = "OK"
+    elif ready:
+        headline = "서비스 기동 진행 중"
+        status = "WARN"
+    else:
+        headline = "서비스 기동 대기"
+        status = "WARN"
+    by_name = {check.name: check for check in checks}
+    stages = [
+        ("01", "WebLogic 기반 서비스", "도메인 관리 서비스가 먼저 준비됩니다.", ["Node Manager", "WebLogic AdminServer"]),
+        ("02", "OAS Managed Server", "BI Managed Server가 기동되면 OAS 서비스가 초기화됩니다.", ["WebLogic BI Managed Server"]),
+        ("03", "OAS 시스템 컴포넌트", "start.sh 순서: obiccs1 → obis1 → obips1 → obijh1 → obisch1", ["OBICCS (obiccs1)", "OBIS (obis1)", "OBIPS (obips1)", "OBIJH (obijh1)", "OBISCH (obisch1)"]),
+        ("04", "REST/OHS 진입점", "Catalog REST 연결이 가능하면 웹 요청 경로가 준비된 것입니다.", ["Catalog REST Endpoint", "OHS HTTP Server"]),
+    ]
+    flow = "".join(runtime_stage(number, title, description, [by_name[name] for name in names if name in by_name]) for number, title, description, names in stages)
+    return """
+    <div class="runtime-summary {status}">
+      <div><strong>{headline}</strong><span>{ready}/{total}개 준비됨</span></div>
+      <div class="runtime-meter"><span style="width:{percent}%"></span></div>
+    </div>
+    <div class="runtime-flow">{flow}</div>
+    """.format(status=esc(status), headline=esc(headline), ready=ready, total=total, percent=int((ready * 100) / total) if total else 0, flow=flow)
+
+
+def runtime_stage(number, title, description, checks):
+    ready = len([check for check in checks if check.status == "OK"])
+    if checks and ready == len(checks):
+        state, status = "준비 완료", "OK"
+    elif ready:
+        state, status = "기동 중", "WARN"
+    else:
+        state, status = "시작 대기", "WAIT"
+    services = "".join(runtime_service_card(check) for check in checks)
+    return """
+    <section class="runtime-stage {status}">
+      <div class="runtime-stage-head"><span class="runtime-stage-number">{number}</span><div><h3>{title}</h3><p>{description}</p></div><span class="runtime-stage-state">{state}</span></div>
+      <div class="runtime-stage-services">{services}</div>
+    </section>
+    """.format(number=esc(number), title=esc(title), description=esc(description), state=esc(state), status=esc(status), services=services)
+
+
+def runtime_service_card(check):
+    return """
+    <div class="runtime-service {status}"><div><strong>{name}</strong><small>{detail}</small></div><div><span>{value}</span>{badge}</div></div>
+    """.format(status=esc(check.status), name=esc(check.name), detail=esc(check.detail).replace("\n", " · "), value=esc(check.value), badge=badge(check.status))
 
 
 def metric_card(metric):
