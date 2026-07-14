@@ -726,6 +726,7 @@ textarea:focus {
 .script-brief {
   display: grid;
   gap: 8px;
+  margin-top: 14px;
 }
 .script-info-block {
   padding: 10px 11px;
@@ -759,6 +760,7 @@ textarea:focus {
   border-color: #f2c9a2;
   background: #fff8f0;
 }
+.script-method-path { display: block; margin: 7px 0 6px; color: #64748b; font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace; font-size: 11px; overflow-wrap: anywhere; }
 .script-info-block pre {
   margin: 0;
   padding: 8px;
@@ -895,18 +897,18 @@ textarea:focus {
 }
 
 .content-scripts .script-picker {
-  gap: 6px;
+  gap: 14px;
 }
 .content-scripts .script-option {
-  min-height: 50px;
-  padding: 8px 9px;
+  min-height: 58px;
+  padding: 10px;
 }
 .content-scripts .script-bin-path {
   margin: 6px 0 8px;
   padding: 6px 9px;
 }
 .content-scripts .script-brief {
-  gap: 6px;
+  gap: 14px;
 }
 .content-scripts .script-info-block {
   padding: 8px 10px;

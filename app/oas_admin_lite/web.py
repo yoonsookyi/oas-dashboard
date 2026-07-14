@@ -635,10 +635,8 @@ def scripts_page(ctx, query):
   <section class="panel script-info-panel">
     <div class="panel-head script-picker-head">
       <div><h2>{label}</h2><p class="muted">{purpose}</p></div>
-      <span class="tag">{script}</span>
     </div>
     {picker}
-    <div class="script-bin-path"><span>bitools/bin</span><code>{bitools}</code></div>
     {brief}
   </section>
   <section class="panel script-run-panel">
@@ -662,13 +660,12 @@ def scripts_page(ctx, query):
   </section>
 </div>
 """.format(
-        bitools=esc(state.get("bitools_bin", "")),
         picker=script_picker(actions, selected["script"]),
         label=esc(selected["label"]),
         purpose=esc(selected.get("purpose", "")),
         script=esc(selected["script"]),
         mode=esc(selected["mode"]),
-        brief=script_brief(selected),
+        brief=script_brief(selected, state.get("bitools_bin", "")),
         fields=script_fields(selected, saved_form),
         command_box=script_command_box(command, last_job_type, selected["mode"]),
         recent_result=script_recent_result(recent_output),
@@ -713,15 +710,16 @@ def script_last_command(state, script):
     return ""
 
 
-def script_brief(action):
+def script_brief(action, bitools_bin):
     return """
     <div class="script-brief">
-      <section class="script-info-block"><h3>실행 구문 형식</h3><pre>{method}</pre></section>
+      <section class="script-info-block"><h3>실행 구문 형식</h3><code class="script-method-path">{bitools}</code><pre>{method}</pre></section>
       <section class="script-info-block"><h3>필수 파라미터</h3>{required}</section>
       <section class="script-info-block"><h3>옵션 파라미터</h3>{optional}</section>
       <section class="script-info-block caution"><h3>주의사항</h3>{cautions}</section>
     </div>
     """.format(
+        bitools=esc(bitools_bin),
         method=esc(action.get("method", "")),
         required=script_list(action.get("required") or []),
         optional=script_list(action.get("optional") or []),
