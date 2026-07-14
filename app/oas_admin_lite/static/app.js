@@ -66,6 +66,20 @@
     }
   });
 
+  document.addEventListener("click", function (event) {
+    var button = event.target.closest && event.target.closest("[data-metric-advice]");
+    if (!button) {
+      return;
+    }
+    var advice = button.nextElementSibling;
+    if (!advice) {
+      return;
+    }
+    var isOpen = button.getAttribute("aria-expanded") === "true";
+    button.setAttribute("aria-expanded", String(!isOpen));
+    advice.hidden = isOpen;
+  });
+
   document.querySelectorAll(".command-preview textarea").forEach(function (textarea) {
     textarea.style.height = "auto";
     textarea.style.height = textarea.scrollHeight + "px";

@@ -217,12 +217,12 @@ SCRIPT_ACTIONS = [
 ]
 
 PAGE_DESCRIPTIONS = {
-    "resources": "OAS 서버의 CPU, Memory, Swap, /u01 Disk, Listener, Process 상태를 확인합니다. OAS/OHS 경로 설정값은 Settings에서 확인합니다.",
-    "catalog": "OAS REST API 수집 결과로 카탈로그 유형, 소유자, 변경일, 폴더 구조, ACL 리스크를 확인합니다.",
-    "patch": "현재 ORACLE_HOME의 OPatch inventory를 조회해 설치된 패치 레벨을 확인합니다. 이 화면은 조회 전용이며 패치를 적용하지 않습니다.",
-    "scripts": "OAS 담당자가 주요 운영 스크립트를 선택하고 명령어 확인, 실행, 결과 이력까지 한 화면에서 관리합니다.",
-    "jobs": "Catalog 수집, OPatch, OAS 스크립트 실행 이력을 조회합니다. 명령, 결과, 메시지를 audit trail로 확인합니다.",
-    "settings": "OAS, OHS, 모니터링 웹앱 설정값을 구분해 조회 전용으로 표시합니다. 값 변경은 app.yaml 또는 환경변수에서 수행합니다.",
+    "resources": "서버 리소스, OAS 기동 상태와 관리 화면 접속 경로를 한눈에 확인합니다.",
+    "catalog": "설정된 인증으로 Catalog를 수집하고 자산, 소유자, 폴더 및 ACL 현황을 확인합니다.",
+    "patch": "ORACLE_HOME의 OPatch inventory를 조회하여 적용된 패치 수준을 확인합니다.",
+    "scripts": "OAS 백업·진단 스크립트의 명령어를 미리 확인한 뒤 안전하게 실행합니다.",
+    "jobs": "카탈로그, 패치, 스크립트 작업의 명령어와 결과 이력을 확인합니다.",
+    "settings": "OAS·OHS·접속 URL 등 현재 운영 설정값을 조회합니다.",
 }
 
 
@@ -369,17 +369,13 @@ def runtime_stage(number, title, description, checks):
 
 def runtime_access_links(cfg):
     oas = cfg.oas
-    base = (getattr(oas, "catalog_base_url", "") or "").rstrip("/")
-    api_url = (getattr(oas, "catalog_api_url", "") or "").strip()
-    if not api_url and base:
-        api_url = base + "/" + (getattr(oas, "catalog_api_path", "") or "").lstrip("/")
     return {
         "weblogic": [
             ("WebLogic Console", getattr(oas, "weblogic_console_url", "")),
             ("Enterprise Manager", getattr(oas, "enterprise_manager_url", "")),
         ],
         "oas": [("Open Analytics", getattr(oas, "analytics_url", ""))],
-        "gateway": [("Catalog REST API", api_url)],
+        "gateway": [("Catalog 조회 화면", "/catalog")],
     }
 
 
@@ -401,8 +397,11 @@ def runtime_access_cards(stages, by_name):
 
 
 def runtime_link_url(value):
-    parsed = urlparse((value or "").strip())
-    return value.strip() if parsed.scheme in ("http", "https") and parsed.netloc else ""
+    value = (value or "").strip()
+    if value.startswith("/") and not value.startswith("//"):
+        return value
+    parsed = urlparse(value)
+    return value if parsed.scheme in ("http", "https") and parsed.netloc else ""
 
 
 def runtime_service_card(check):
@@ -419,6 +418,7 @@ def metric_card(metric):
         percent = 100
     label_position = "ON_FILL" if percent >= 50 else "OFF_FILL"
     metadata = metric_metadata(metric)
+    status_badge = metric_status_badge(metric)
     return """
     <div class="metric-card {status}">
       <div class="metric-head"><span>{name}</span>{badge}</div>
@@ -426,7 +426,26 @@ def metric_card(metric):
       <div class="meter"><span style="width:{percent}%"></span><b class="meter-label {label_position}" style="left:{percent}%">{percent}%</b></div>
       {metadata}
     </div>
-    """.format(status=esc(metric.status), name=esc(metric.name), badge=badge(metric.status), value=esc(metric.value), unit=esc(metric.unit), percent=percent, label_position=label_position, metadata=metadata)
+    """.format(status=esc(metric.status), name=esc(metric.name), badge=status_badge, value=esc(metric.value), unit=esc(metric.unit), percent=percent, label_position=label_position, metadata=metadata)
+
+
+def metric_status_badge(metric):
+    if metric.status != "HIGH":
+        return badge(metric.status)
+    advice = metric_high_guidance(metric.name)
+    return '<div class="metric-advice-wrap"><button type="button" class="badge HIGH metric-advice-toggle" data-metric-advice aria-expanded="false">HIGH</button><div class="metric-advice" hidden>{0}</div></div>'.format(esc(advice))
+
+
+def metric_high_guidance(name):
+    if name == "Load":
+        return "시작: 서버에서 top 또는 ps -eo pid,ppid,cmd,%cpu,%mem --sort=-%cpu | head 로 CPU 상위 프로세스를 확인합니다.\n다음: vmstat 1 5의 wa가 높으면 I/O 병목을 함께 점검하고, 배치·백업·대용량 수집 작업은 종료 또는 시간 조정합니다."
+    if name == "Memory":
+        return "시작: free -h와 ps -eo pid,cmd,%mem,rss --sort=-%mem | head 로 메모리 상위 프로세스를 확인합니다.\n다음: OAS/Java 프로세스의 비정상 증가 여부를 확인하고, 불필요한 작업을 중지한 뒤 지속되면 JVM 메모리 또는 서버 증설을 검토합니다."
+    if name == "Swap":
+        return "시작: free -h와 vmstat 1 5를 실행해 si/so가 계속 발생하는지 확인합니다.\n다음: ps -eo pid,cmd,%mem,rss --sort=-%mem | head 로 원인 프로세스를 찾고, 메모리 사용 작업을 조정하거나 JVM/서버 메모리 증설을 검토합니다."
+    if name.startswith("Disk "):
+        return "시작: df -h로 해당 파일 시스템을 확인하고 du -xhd1 <마운트경로> | sort -h로 큰 디렉터리를 찾습니다.\n다음: 보존 정책에 따라 오래된 로그·진단 번들·백업 파일을 정리하고, 정리 전 삭제 대상과 용량 확보량을 확인합니다."
+    return "시작: 상세 지표와 ps/top 결과로 원인 프로세스를 확인합니다.\n다음: 반복되면 수집 시각, 사용률, 실행 중인 작업을 함께 기록해 OAS 운영 담당자에게 전달합니다."
 
 
 def metric_metadata(metric):

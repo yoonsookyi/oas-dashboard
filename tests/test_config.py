@@ -8,7 +8,7 @@ from app.oas_admin_lite.catalog import CatalogService, analyze_acl, build_dashbo
 from app.oas_admin_lite.config import AppConfig, load_config, parse_simple_yaml
 from app.oas_admin_lite.scripts_runner import ScriptService, allowed_scripts
 from app.oas_admin_lite.storage import JobStore
-from app.oas_admin_lite.web import AppContext, script_form_state, script_preview_matches, script_request, scripts_page
+from app.oas_admin_lite.web import AppContext, runtime_link_url, script_form_state, script_preview_matches, script_request, scripts_page
 
 
 class ConfigTests(unittest.TestCase):
@@ -129,6 +129,10 @@ class ConfigTests(unittest.TestCase):
         changed = dict(preview)
         changed["diagnostic_zip"] = "/u01/oas-admin-lite/bundles/changed.zip"
         self.assertFalse(script_preview_matches(preview, changed))
+
+    def test_runtime_link_url_allows_safe_catalog_path(self):
+        self.assertEqual(runtime_link_url("/catalog"), "/catalog")
+        self.assertEqual(runtime_link_url("//untrusted.example"), "")
 
 
     def test_script_preview_uses_stdin_file_without_password_leak(self):
