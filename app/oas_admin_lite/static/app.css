@@ -825,6 +825,24 @@ textarea:focus {
 .script-exec-form .full {
   grid-column: 1 / -1;
 }
+.script-form-grid .service-instance-field,
+.script-form-grid .export-dir-field,
+.script-form-grid label:has(input[name="stdin_file"]) {
+  padding: 9px;
+  border: 1px solid #bde3cc;
+  border-radius: 7px;
+  background: #f3fbf6;
+}
+.script-form-grid label:has(input[name="export_options"]) {
+  padding: 9px;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  background: #f8fafc;
+}
+.script-form-grid .service-instance-field input,
+.script-form-grid .export-dir-field input,
+.script-form-grid input[name="stdin_file"] { border-color: #9bcdb1; }
+.script-form-grid input[name="export_options"] { border-color: #cbd5e1; }
 .field-help,
 .form-help {
   color: var(--muted);

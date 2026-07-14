@@ -182,7 +182,7 @@ SCRIPT_ACTIONS = [
     {
         "script": "exportarchive.sh",
         "mode": "exportarchive",
-        "label": "환경 메타데이터 BAR 내보내기",
+        "label": "OAS 환경 백업 내보내기",
         "method": "exportarchive.sh <service instance key> <export directory> {optional parameters} < /path/exportpwd.txt",
         "purpose": "서비스 인스턴스의 환경 메타데이터를 BAR 파일로 내보내 이관, 백업, 비교 작업에 사용할 수 있게 합니다.",
         "required": ["Service instance key", "Export directory", "Encryption password file path: password 한 줄만 저장된 서버 파일 경로"],
@@ -197,7 +197,7 @@ SCRIPT_ACTIONS = [
     {
         "script": "diagnostic_dump.sh",
         "mode": "diagnostic",
-        "label": "Oracle Support 진단 번들 수집",
+        "label": "OAS 지원용 진단 로그 수집",
         "method": "diagnostic_dump.sh <zip file name>",
         "purpose": "Oracle Support 또는 Development 조직에 제공할 OAS 진단 번들 ZIP을 수집합니다.",
         "required": ["ZIP file name"],
@@ -645,7 +645,7 @@ def scripts_page(ctx, query):
       <input type="hidden" name="script" value="{script}">
       <input type="hidden" name="arg_mode" value="{mode}">
       <section class="script-step input-step">
-        <div class="script-step-head"><span class="step-number">1</span><div><h3>파라미터 입력</h3><p>필수 값과 선택 옵션을 입력한 뒤 실행될 명령어를 확인합니다.</p></div></div>
+        <div class="script-step-head"><span class="step-number">1</span><div><h3>파라미터 입력</h3></div></div>
         <div class="script-form-grid">{fields}</div>
         <div class="actions"><button formaction="/scripts/preview" type="submit" class="secondary">입력 완료(명령어 확인)</button></div>
       </section>
@@ -738,8 +738,7 @@ def script_command_box(command, last_job_type="", mode=""):
         help_text = "미리보기로 생성된 명령어입니다. 이 단계에서는 서버에서 실행하지 않았습니다."
     else:
         help_text = "1단계의 입력 완료(명령어 확인) 버튼을 누르면 쉘 스크립트와 파라미터가 합쳐진 명령어가 표시됩니다."
-    label = "쉘 스크립트 + 파라미터 + stdin 파일" if mode == "exportarchive" else "쉘 스크립트 + 파라미터"
-    return '<label class="full command-preview">{2}<textarea readonly placeholder="명령어 확인 버튼을 누르면 실행될 명령어가 여기에 표시됩니다.">{0}</textarea><span class="field-help">{1}</span></label>'.format(esc(command), esc(help_text), esc(label))
+    return '<label class="full command-preview"><textarea readonly placeholder="명령어 확인 버튼을 누르면 실행될 명령어가 여기에 표시됩니다.">{0}</textarea><span class="field-help">{1}</span></label>'.format(esc(command), esc(help_text))
 
 def script_recent_result(output):
     if not output:
@@ -760,8 +759,8 @@ def script_fields(action, values=None):
         return """
         <label class="service-instance-field">Service instance key<input name="service_instance" value="{service_instance}" placeholder="ssi"></label>
         <label class="export-dir-field">Export directory<input name="export_dir" value="{export_dir}" placeholder="/u01/oas-admin-lite/backups/export"></label>
-        <label class="full">Optional parameters<input name="export_options" value="{export_options}" placeholder="noconnectionparams nouserfolders includedata advancedoptions=/path/options.json"></label>
         <label class="full">Encryption password file path<input name="stdin_file" value="{stdin_file}" placeholder="/u01/oas-admin-lite/backups/exportpwd.txt"><span class="field-help">사전에 생성한 password 파일 경로를 입력합니다. 웹앱은 파일 내용을 읽지 않고, 실행 명령에 &lt; 파일경로 형태로 붙여 실행합니다.</span></label>
+        <label class="full">Optional parameters<input name="export_options" value="{export_options}" placeholder="noconnectionparams nouserfolders includedata advancedoptions=/path/options.json"></label>
         """.format(service_instance=esc(values.get("service_instance", "")), export_dir=esc(values.get("export_dir", "")), export_options=esc(values.get("export_options", "")), stdin_file=esc(values.get("stdin_file", "")))
     if action["mode"] == "diagnostic":
         return """
