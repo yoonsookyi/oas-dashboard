@@ -11,6 +11,9 @@ from urllib.parse import urlparse
 from .scripts_runner import allowed_scripts
 
 
+STATUS_SCRIPT_TIMEOUT_SECONDS = 180
+
+
 class Check(object):
     def __init__(self, name, value, status, detail=""):
         self.name = name
@@ -151,7 +154,7 @@ def oas_component_statuses(cfg):
     try:
         proc = subprocess.run(
             [status_path], cwd=cfg.oas.bitools_bin, universal_newlines=True,
-            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=60, check=False,
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=STATUS_SCRIPT_TIMEOUT_SECONDS, check=False,
         )
     except Exception as exc:
         return {}, "status.sh failed: {0}".format(exc)
