@@ -4,6 +4,7 @@ import re
 import shutil
 import socket
 import subprocess
+import threading
 import time
 from pathlib import Path
 from urllib.parse import urlparse
@@ -12,6 +13,8 @@ from .scripts_runner import allowed_scripts
 
 
 STATUS_SCRIPT_TIMEOUT_SECONDS = 180
+STATUS_CACHE_SECONDS = 300
+STATUS_RETRY_SECONDS = 60
 
 
 class Check(object):
@@ -49,6 +52,12 @@ class Snapshot(object):
 class ResourceCollector(object):
     def __init__(self, cfg):
         self.cfg = cfg
+        self._component_status_lock = threading.Lock()
+        self._component_statuses = {}
+        self._component_status_checked_at = 0
+        self._component_status_last_attempt = 0
+        self._component_status_error = ""
+        self._component_status_refreshing = False
 
     def snapshot(self):
         oas_checks = self._oas_checks()
@@ -95,7 +104,7 @@ class ResourceCollector(object):
     def _service_checks(self):
         """Collect the runtime signals that matter while OAS is starting."""
         processes = runtime_process_text()
-        component_states, status_error = oas_component_statuses(self.cfg)
+        component_states, status_note = self._cached_component_statuses()
         checks = [
             process_service_check("Node Manager", processes, ["nodemanager", "node manager"], "WebLogic 기동과 Managed Server 제어"),
             process_service_check("WebLogic AdminServer", processes, ["weblogic.name=adminserver", "weblogic.name=admin_server"], "OAS 도메인 관리 및 Managed Server 기동"),
@@ -108,16 +117,53 @@ class ResourceCollector(object):
             catalog_endpoint_check(self.cfg),
         ]
         checks[3:8] = [
-            system_component_check("OBICCS (obiccs1)", "obiccs1", component_states, status_error, "Cluster Controller: BI system component control"),
-            system_component_check("OBIS (obis1)", "obis1", component_states, status_error, "BI Server query processing"),
-            system_component_check("OBIPS (obips1)", "obips1", component_states, status_error, "Presentation Services request processing"),
-            system_component_check("OBIJH (obijh1)", "obijh1", component_states, status_error, "JavaHost processing"),
-            system_component_check("OBISCH (obisch1)", "obisch1", component_states, status_error, "Scheduler processing"),
+            component_process_check("OBICCS (obiccs1)", "obiccs1", processes, ["obiccs", "nqscluster"], component_states, status_note, "Cluster Controller: BI system component control"),
+            component_process_check("OBIS (obis1)", "obis1", processes, ["nqsserver", "obis1"], component_states, status_note, "BI Server query processing"),
+            component_process_check("OBIPS (obips1)", "obips1", processes, ["sawserver", "obips"], component_states, status_note, "Presentation Services request processing"),
+            component_process_check("OBIJH (obijh1)", "obijh1", processes, ["javahost", "obijh"], component_states, status_note, "JavaHost processing"),
+            component_process_check("OBISCH (obisch1)", "obisch1", processes, ["nqscheduler", "obisch"], component_states, status_note, "Scheduler processing"),
         ]
         ohs = getattr(self.cfg, "ohs", None)
         if ohs and getattr(ohs, "monitor_local", False):
             checks.append(process_service_check("OHS HTTP Server", processes, ["httpd", "/ohs/"], "HTTP/REST 요청 프록시 및 전달"))
         return checks
+
+    def _cached_component_statuses(self):
+        now = time.time()
+        with self._component_status_lock:
+            age = now - self._component_status_checked_at if self._component_status_checked_at else None
+            should_refresh = (
+                not self._component_status_refreshing
+                and (age is None or age >= STATUS_CACHE_SECONDS)
+                and now - self._component_status_last_attempt >= STATUS_RETRY_SECONDS
+            )
+            if should_refresh:
+                self._component_status_refreshing = True
+                self._component_status_last_attempt = now
+                threading.Thread(target=self._refresh_component_statuses, daemon=True).start()
+
+            states = dict(self._component_statuses)
+            if self._component_status_checked_at:
+                checked = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(self._component_status_checked_at))
+                note = "status.sh last confirmed: {0}".format(checked)
+                if self._component_status_refreshing:
+                    note += " (refreshing)"
+            elif self._component_status_refreshing:
+                note = "status.sh check in progress"
+            else:
+                note = self._component_status_error or "status.sh status is not available"
+        return states, note
+
+    def _refresh_component_statuses(self):
+        states, error = oas_component_statuses(self.cfg)
+        with self._component_status_lock:
+            if states:
+                self._component_statuses = states
+                self._component_status_checked_at = time.time()
+                self._component_status_error = ""
+            else:
+                self._component_status_error = error
+            self._component_status_refreshing = False
 
     def _linux_metrics(self):
         metrics = []
@@ -171,14 +217,12 @@ def oas_component_statuses(cfg):
     return {}, "status.sh output could not be parsed{0}".format(": " + output[:240] if output else "")
 
 
-def system_component_check(name, component, states, status_error, role):
-    state = states.get(component.lower())
-    detail = "Collection: status.sh\nRole: {0}".format(role)
-    if not state:
-        if status_error:
-            detail = "{0}\n{1}".format(detail, status_error)
-        return Check(name, "UNKNOWN", "WARN", detail)
-    return Check(name, state, "OK" if state == "RUNNING" else "WARN", detail)
+def component_process_check(name, component, process_text, signatures, states, status_note, role):
+    active = any(signature in process_text for signature in signatures)
+    state = "실행 중" if active else "시작 대기"
+    management_state = states.get(component.lower(), "아직 확인되지 않음")
+    detail = "수집: ps -eo args\n역할: {0}\n관리 상태: {1} ({2})".format(role, management_state, status_note)
+    return Check(name, state, "OK" if active else "WARN", detail)
 
 
 def process_service_check(name, process_text, signatures, role):

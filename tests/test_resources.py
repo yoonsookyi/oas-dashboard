@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch
 
 from app.oas_admin_lite.config import AppConfig
-from app.oas_admin_lite.resources import ResourceCollector, catalog_endpoint_check, listener_check, load_metric, oas_component_statuses, process_service_check, process_check, system_component_check, threshold_status
+from app.oas_admin_lite.resources import ResourceCollector, catalog_endpoint_check, component_process_check, listener_check, load_metric, oas_component_statuses, process_service_check, process_check, threshold_status
 
 
 class ResourceStatusTests(unittest.TestCase):
@@ -105,7 +105,9 @@ obisch1         OBISCH          oas2026-mp                3600        5000      
         self.assertEqual(error, "")
         self.assertEqual(states["obiccs1"], "RUNNING")
         self.assertEqual(states["obisch1"], "STARTING")
-        self.assertEqual(system_component_check("Scheduler", "obisch1", states, error, "job scheduling").status, "WARN")
+        check = component_process_check("Scheduler", "obisch1", "nqscheduler", ["nqscheduler"], states, "status.sh last confirmed", "job scheduling")
+        self.assertEqual(check.status, "OK")
+        self.assertIn("STARTING", check.detail)
 
     def test_load_metric_exposes_labeled_metadata(self):
         with patch("app.oas_admin_lite.resources.os.getloadavg", return_value=(2.0, 1.5, 1.0)):
