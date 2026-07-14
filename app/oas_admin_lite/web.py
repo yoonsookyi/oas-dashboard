@@ -83,7 +83,7 @@ def make_handler(ctx):
                     ctx.scripts.preview(script, args, stdin_text, stdin_label)
                     ctx.store.set_json("script_form_state", form_state)
                     ctx.store.set_json("script_preview_state", form_state)
-                    self._redirect_flash(script_redirect(script), "명령어 미리보기를 생성했습니다. OAS 스크립트는 실행하지 않았습니다.")
+                    self._redirect_flash(script_redirect(script), "명령어 미리보기를 생성했습니다.")
                 elif parsed.path == "/scripts/run":
                     script, args, stdin_text, stdin_label = script_request(form)
                     form_state = script_form_state(form)
