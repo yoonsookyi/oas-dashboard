@@ -14,6 +14,8 @@ oas:
   domain_home: ".local/mock/domain_home"
   bitools_bin: ".local/mock/bitools/bin"
   analytics_url: "http://127.0.0.1:18080/mock/catalog"
+  weblogic_console_url: "http://127.0.0.1:9500/console"
+  enterprise_manager_url: "http://127.0.0.1:9500/em"
   catalog_base_url: "http://127.0.0.1:18080"
   catalog_api_path: "/mock/catalog"
   catalog_api_url: ""

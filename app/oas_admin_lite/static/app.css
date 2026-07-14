@@ -458,6 +458,16 @@ textarea:focus {
 .runtime-service strong, .runtime-service span { display: block; color: #334155; font-size: 12px; font-weight: 800; }
 .runtime-service small { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; line-height: 1.35; }
 .runtime-service > div:last-child { display: grid; justify-items: end; align-content: start; gap: 5px; text-align: right; }
+.runtime-access-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 0 0 14px; min-width: 910px; }
+.runtime-access-card { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 9px; min-width: 0; min-height: 68px; padding: 10px 11px; border: 1px dashed #aebdca; border-radius: 8px; background: #f8fafc; color: #64748b; text-decoration: none; }
+.runtime-access-card.OK { border: 1px solid #9bcdb1; background: #f3fbf6; color: #176b3a; }
+.runtime-access-card.OK:hover { border-color: var(--green); background: #e6f6ed; }
+.runtime-access-card strong, .runtime-access-card small { display: block; }
+.runtime-access-card strong { font-size: 12px; }
+.runtime-access-card small { margin-top: 2px; color: var(--muted); font-size: 10px; font-weight: 700; line-height: 1.3; }
+.runtime-access-card em { color: inherit; font-size: 10px; font-style: normal; font-weight: 850; white-space: nowrap; }
+.runtime-access-signal { width: 9px; height: 9px; border-radius: 50%; background: #94a3b8; box-shadow: 0 0 0 4px #e8eef5; }
+.runtime-access-card.OK .runtime-access-signal { background: var(--green); box-shadow: 0 0 0 4px #dff2e6; }
 
 .catalog-summary {
   display: grid;

@@ -286,7 +286,7 @@ def nav(active):
 def resources_page(ctx, query):
     snap = ctx.resources.snapshot()
     metric_cards = "".join(metric_card(metric) for metric in snap.metrics)
-    readiness = runtime_readiness(snap.service_checks)
+    readiness = runtime_readiness(snap.service_checks, ctx.cfg)
     oas_rows = "".join(check_row(c, value_second=False) for c in snap.oas_checks)
     resource_rows = "".join(check_row(c, value_second=False) for c in snap.resource_checks)
     content = """
@@ -331,33 +331,18 @@ def metric_status_legend():
     """
 
 
-def runtime_readiness(checks):
-    total = len(checks)
-    ready = len([check for check in checks if check.status == "OK"])
-    if ready == total:
-        headline = "서비스 준비 완료"
-        status = "OK"
-    elif ready:
-        headline = "서비스 기동 진행 중"
-        status = "WARN"
-    else:
-        headline = "서비스 기동 대기"
-        status = "WARN"
+def runtime_readiness(checks, cfg):
     by_name = {check.name: check for check in checks}
+    access_links = runtime_access_links(cfg)
     stages = [
-        ("01", "WebLogic 기반 서비스", "도메인 관리 서비스가 먼저 준비됩니다.", ["Node Manager", "WebLogic AdminServer"]),
-        ("02", "OAS Managed Server", "BI Managed Server가 기동되면 OAS 서비스가 초기화됩니다.", ["WebLogic BI Managed Server"]),
-        ("03", "OAS 시스템 컴포넌트", "bitools/bin/status.sh 결과로 obiccs1, obis1, obips1, obijh1, obisch1 상태를 확인합니다.", ["OBICCS (obiccs1)", "OBIS (obis1)", "OBIPS (obips1)", "OBIJH (obijh1)", "OBISCH (obisch1)"]),
-        ("04", "REST/OHS 진입점", "Catalog REST 연결이 가능하면 웹 요청 경로가 준비된 것입니다.", ["Catalog REST Endpoint", "OHS HTTP Server"]),
+        ("01", "WebLogic 기반 서비스", "도메인 관리 서비스가 준비되면 관리 콘솔에 접속할 수 있습니다.", ["Node Manager", "WebLogic AdminServer"], access_links["weblogic"]),
+        ("02", "OAS Managed Server", "BI Managed Server가 기동되면 OAS 서비스가 초기화됩니다.", ["WebLogic BI Managed Server"], []),
+        ("03", "OAS 시스템 컴포넌트", "bitools/bin/status.sh 결과로 obiccs1, obis1, obips1, obijh1, obisch1 상태를 확인합니다.", ["OBICCS (obiccs1)", "OBIS (obis1)", "OBIPS (obips1)", "OBIJH (obijh1)", "OBISCH (obisch1)"], access_links["oas"]),
+        ("04", "OAS 접속 경로", "OHS를 통해 Analytics와 Catalog REST API에 접근할 수 있습니다.", ["Catalog REST Endpoint", "OHS HTTP Server"], access_links["gateway"]),
     ]
-    flow = "".join(runtime_stage(number, title, description, [by_name[name] for name in names if name in by_name]) for number, title, description, names in stages)
-    return """
-    <div class="runtime-summary {status}">
-      <div><strong>{headline}</strong><span>{ready}/{total}개 준비됨</span></div>
-      <div class="runtime-meter"><span style="width:{percent}%"></span></div>
-    </div>
-    <div class="runtime-flow">{flow}</div>
-    """.format(status=esc(status), headline=esc(headline), ready=ready, total=total, percent=int((ready * 100) / total) if total else 0, flow=flow)
+    access_cards = runtime_access_cards(stages, by_name)
+    flow = "".join(runtime_stage(number, title, description, [by_name[name] for name in names if name in by_name]) for number, title, description, names, links in stages)
+    return '<div class="runtime-access-grid">{0}</div><div class="runtime-flow">{1}</div>'.format(access_cards, flow)
 
 
 def runtime_stage(number, title, description, checks):
@@ -375,6 +360,44 @@ def runtime_stage(number, title, description, checks):
       <div class="runtime-stage-services">{services}</div>
     </section>
     """.format(number=esc(number), title=esc(title), description=esc(description), state=esc(state), status=esc(status), services=services)
+
+
+def runtime_access_links(cfg):
+    oas = cfg.oas
+    base = (getattr(oas, "catalog_base_url", "") or "").rstrip("/")
+    api_url = (getattr(oas, "catalog_api_url", "") or "").strip()
+    if not api_url and base:
+        api_url = base + "/" + (getattr(oas, "catalog_api_path", "") or "").lstrip("/")
+    return {
+        "weblogic": [
+            ("WebLogic Console", getattr(oas, "weblogic_console_url", "")),
+            ("Enterprise Manager", getattr(oas, "enterprise_manager_url", "")),
+        ],
+        "oas": [("Open Analytics", getattr(oas, "analytics_url", ""))],
+        "gateway": [("Catalog REST API", api_url)],
+    }
+
+
+def runtime_access_cards(stages, by_name):
+    cards = []
+    for number, stage_title, description, names, links in stages:
+        if not links:
+            continue
+        checks = [by_name[name] for name in names if name in by_name]
+        ready = bool(checks) and len([check for check in checks if check.status == "OK"]) == len(checks)
+        for label, url in links:
+            href = runtime_link_url(url)
+            if ready and href:
+                cards.append('<a class="runtime-access-card OK" href="{0}" target="_blank" rel="noopener noreferrer"><span class="runtime-access-signal"></span><span><strong>{1}</strong><small>{2} ready</small></span><em>Open</em></a>'.format(esc(href), esc(label), esc(stage_title)))
+            else:
+                note = "URL not configured" if not href else "Waiting for service"
+                cards.append('<span class="runtime-access-card WAIT"><span class="runtime-access-signal"></span><span><strong>{0}</strong><small>{1}</small></span><em>{2}</em></span>'.format(esc(label), esc(stage_title), esc(note)))
+    return "".join(cards)
+
+
+def runtime_link_url(value):
+    parsed = urlparse((value or "").strip())
+    return value.strip() if parsed.scheme in ("http", "https") and parsed.netloc else ""
 
 
 def runtime_service_card(check):
@@ -821,6 +844,8 @@ def settings_page(ctx, query):
         ("DOMAIN_HOME", cfg.oas.domain_home),
         ("bitools/bin", cfg.oas.bitools_bin),
         ("Analytics URL", cfg.oas.analytics_url),
+        ("WebLogic Console URL", getattr(cfg.oas, "weblogic_console_url", "")),
+        ("Enterprise Manager URL", getattr(cfg.oas, "enterprise_manager_url", "")),
         ("Catalog Base URL", getattr(cfg.oas, "catalog_base_url", "")),
         ("Catalog API Path", getattr(cfg.oas, "catalog_api_path", "")),
         ("Catalog API URL", getattr(cfg.oas, "catalog_api_url", "")),

@@ -14,6 +14,8 @@ oas:
   domain_home: "/u01/app/oracle/config/domains/bi"
   bitools_bin: "/u01/app/oracle/config/domains/bi/bitools/bin"
   analytics_url: "https://oas.example.com/analytics"
+  weblogic_console_url: "http://oas.example.com:9500/console"
+  enterprise_manager_url: "http://oas.example.com:9500/em"
   # The supported OAS REST API is exposed through the web tier. In a split
   # deployment use the private/LB web-tier URL reachable from this OAS host.
   # Do not point this at an unmanaged WebLogic/BI internal listener.

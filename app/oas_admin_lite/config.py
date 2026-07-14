@@ -23,6 +23,8 @@ class OASConfig(object):
         self.domain_home = "/u01/app/oracle/config/domains/bi"
         self.bitools_bin = "/u01/app/oracle/config/domains/bi/bitools/bin"
         self.analytics_url = "https://oas.example.com/analytics"
+        self.weblogic_console_url = ""
+        self.enterprise_manager_url = ""
         self.catalog_base_url = ""
         self.catalog_api_path = "/api/20210901/catalog"
         self.catalog_api_url = ""
