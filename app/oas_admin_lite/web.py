@@ -645,13 +645,12 @@ def scripts_page(ctx, query):
       <input type="hidden" name="script" value="{script}">
       <input type="hidden" name="arg_mode" value="{mode}">
       <section class="script-step input-step">
-        <div class="script-step-head"><span class="step-number">1</span><div><h3>파라미터 입력</h3></div></div>
+        <div class="script-step-top"><div class="script-step-head"><span class="step-number">1</span><div><h3>파라미터 입력</h3></div></div><div class="actions script-step-actions"><button formaction="/scripts/preview" type="submit" class="secondary">명령어 미리보기</button></div></div>
         <div class="script-form-grid">{fields}</div>
-        <div class="actions input-actions"><button formaction="/scripts/preview" type="submit" class="secondary">입력 완료(명령어 확인)</button></div>
       </section>
       <section class="script-step command-step">
-        <div class="script-step-head"><span class="step-number">2</span><div><h3>명령어 확인 및 실행</h3><p>쉘 스크립트와 입력 파라미터가 합쳐진 명령어를 확인한 뒤 실행합니다.</p></div></div>
-        <div class="command-execution-row">{command_box}<div class="actions script-run-actions"><button formaction="/scripts/run" type="submit" class="danger" data-running-label="실행 중...">실행</button></div></div>
+        <div class="script-step-top"><div class="script-step-head"><span class="step-number">2</span><div><h3>명령어 확인 및 실행</h3><p>쉘 스크립트와 입력 파라미터가 합쳐진 명령어를 확인한 뒤 실행합니다.</p></div></div><div class="actions script-step-actions"><button formaction="/scripts/run" type="submit" class="danger" data-running-label="실행 중...">실행</button></div></div>
+        {command_box}
         <div class="script-running-status" data-script-running-status role="status" aria-live="polite" hidden>스크립트를 실행 중입니다. 완료될 때까지 기다려 주세요.</div>
         {recent_result}
       </section>
@@ -710,18 +709,21 @@ def script_last_command(state, script):
 
 
 def script_brief(action, bitools_bin):
+    optional_block = ''
+    if action.get("mode") != "diagnostic":
+        optional_block = '<section class="script-info-block optional-parameters"><h3>옵션 파라미터</h3>{0}</section>'.format(script_list(action.get("optional") or []))
     return """
     <div class="script-brief">
       <section class="script-info-block"><h3>실행 구문 형식</h3><code class="script-method-path">{bitools}</code><pre>{method}</pre></section>
-      <section class="script-info-block"><h3>필수 파라미터</h3>{required}</section>
-      <section class="script-info-block"><h3>옵션 파라미터</h3>{optional}</section>
+      <section class="script-info-block required-parameters"><h3>필수 파라미터</h3>{required}</section>
+      {optional_block}
       <section class="script-info-block caution"><h3>주의사항</h3>{cautions}</section>
     </div>
     """.format(
         bitools=esc(bitools_bin),
         method=esc(action.get("method", "")),
         required=script_list(action.get("required") or []),
-        optional=script_list(action.get("optional") or []),
+        optional_block=optional_block,
         cautions=script_list(action.get("cautions") or []),
     )
 def script_list(items):
