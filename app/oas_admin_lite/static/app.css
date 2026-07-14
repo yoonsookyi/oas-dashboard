@@ -829,7 +829,8 @@ textarea:focus {
 }
 .script-form-grid .service-instance-field,
 .script-form-grid .export-dir-field,
-.script-form-grid label:has(input[name="stdin_file"]) {
+.script-form-grid label:has(input[name="stdin_file"]),
+.script-form-grid label:has(input[name="diagnostic_zip"]) {
   color: #176b3a;
 }
 .script-form-grid label:has(input[name="export_options"]) {
@@ -837,7 +838,8 @@ textarea:focus {
 }
 .script-form-grid .service-instance-field input,
 .script-form-grid .export-dir-field input,
-.script-form-grid input[name="stdin_file"] { border-color: #a8c0c2; }
+.script-form-grid input[name="stdin_file"],
+.script-form-grid input[name="diagnostic_zip"] { border-color: #a8c0c2; }
 .script-form-grid input[name="export_options"] { border-color: #c6d2d3; }
 .field-help,
 .form-help {
@@ -853,7 +855,10 @@ textarea:focus {
   font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
   font-size: 12px;
   line-height: 1.4;
-  white-space: pre;
+  white-space: pre-wrap;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  resize: none;
 }
 .script-run-panel .actions {
   margin: 0;

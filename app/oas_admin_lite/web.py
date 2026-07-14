@@ -79,12 +79,17 @@ def make_handler(ctx):
 
                 elif parsed.path == "/scripts/preview":
                     script, args, stdin_text, stdin_label = script_request(form)
-                    ctx.store.set_json("script_form_state", script_form_state(form))
+                    form_state = script_form_state(form)
                     ctx.scripts.preview(script, args, stdin_text, stdin_label)
+                    ctx.store.set_json("script_form_state", form_state)
+                    ctx.store.set_json("script_preview_state", form_state)
                     self._redirect_flash(script_redirect(script), "명령어 미리보기를 생성했습니다. OAS 스크립트는 실행하지 않았습니다.")
                 elif parsed.path == "/scripts/run":
                     script, args, stdin_text, stdin_label = script_request(form)
-                    ctx.store.set_json("script_form_state", script_form_state(form))
+                    form_state = script_form_state(form)
+                    if not script_preview_matches(ctx.store.get_json("script_preview_state", {}), form_state):
+                        raise ValueError("현재 입력값으로 명령어 미리보기를 먼저 수행하세요.")
+                    ctx.store.set_json("script_form_state", form_state)
                     ctx.scripts.run(script, args, stdin_text, stdin_label)
                     self._redirect_flash(script_redirect(script), "실제 OAS 스크립트 실행이 완료되었습니다.")
                 else:
@@ -628,6 +633,7 @@ def scripts_page(ctx, query):
     selected = selected_script(query, actions)
     saved_form = script_saved_form(ctx, selected["script"])
     command = script_last_command(state, selected["script"])
+    preview_ready = bool(command) and script_preview_matches(ctx.store.get_json("script_preview_state", {}), saved_form)
     last_job_type = state.get("last_job_type", "")
     recent_output = state.get("last_output", "") if command and last_job_type == "script_run" else ""
     content = """
@@ -649,7 +655,7 @@ def scripts_page(ctx, query):
         <div class="script-form-grid">{fields}</div>
       </section>
       <section class="script-step command-step">
-        <div class="script-step-top"><div class="script-step-head"><span class="step-number">2</span><div><h3>명령어 확인 및 실행</h3><p>쉘 스크립트와 입력 파라미터가 합쳐진 명령어를 확인한 뒤 실행합니다.</p></div></div><div class="actions script-step-actions"><button formaction="/scripts/run" type="submit" class="danger" data-running-label="실행 중...">실행</button></div></div>
+        <div class="script-step-top"><div class="script-step-head"><span class="step-number">2</span><div><h3>명령어 확인 및 실행</h3><p>쉘 스크립트와 입력 파라미터가 합쳐진 명령어를 확인한 뒤 실행합니다.</p></div></div><div class="actions script-step-actions"><button formaction="/scripts/run" type="submit" class="danger" data-running-label="실행 중..."{run_disabled}>실행</button></div></div>
         {command_box}
         <div class="script-running-status" data-script-running-status role="status" aria-live="polite" hidden>스크립트를 실행 중입니다. 완료될 때까지 기다려 주세요.</div>
         {recent_result}
@@ -666,6 +672,7 @@ def scripts_page(ctx, query):
         brief=script_brief(selected, state.get("bitools_bin", "")),
         fields=script_fields(selected, saved_form),
         command_box=script_command_box(command, last_job_type, selected["mode"]),
+        run_disabled="" if preview_ready else ' disabled aria-disabled="true" title="명령어 미리보기를 먼저 수행하세요."',
         recent_result=script_recent_result(recent_output),
     )
     return layout(ctx, "Scripts", "scripts", content, query)
@@ -700,6 +707,10 @@ def script_form_state(form):
         "stdin_file": first(form, "stdin_file"),
         "diagnostic_zip": first(form, "diagnostic_zip"),
     }
+
+
+def script_preview_matches(preview_state, form_state):
+    return bool(preview_state) and preview_state == form_state
 
 def script_last_command(state, script):
     command = state.get("last_command", "")

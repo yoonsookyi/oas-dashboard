@@ -8,7 +8,7 @@ from app.oas_admin_lite.catalog import CatalogService, analyze_acl, build_dashbo
 from app.oas_admin_lite.config import AppConfig, load_config, parse_simple_yaml
 from app.oas_admin_lite.scripts_runner import ScriptService, allowed_scripts
 from app.oas_admin_lite.storage import JobStore
-from app.oas_admin_lite.web import AppContext, script_form_state, script_request, scripts_page
+from app.oas_admin_lite.web import AppContext, script_form_state, script_preview_matches, script_request, scripts_page
 
 
 class ConfigTests(unittest.TestCase):
@@ -118,6 +118,17 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(state["stdin_file"], "/u01/oas-admin-lite/backups/exportpwd.txt")
         self.assertNotIn("stdin_text", state)
         self.assertNotIn("secret-password", str(state))
+
+    def test_script_preview_must_match_current_form(self):
+        preview = script_form_state({
+            "script": ["diagnostic_dump.sh"],
+            "arg_mode": ["diagnostic"],
+            "diagnostic_zip": ["/u01/oas-admin-lite/bundles/first.zip"],
+        })
+        self.assertTrue(script_preview_matches(preview, dict(preview)))
+        changed = dict(preview)
+        changed["diagnostic_zip"] = "/u01/oas-admin-lite/bundles/changed.zip"
+        self.assertFalse(script_preview_matches(preview, changed))
 
 
     def test_script_preview_uses_stdin_file_without_password_leak(self):

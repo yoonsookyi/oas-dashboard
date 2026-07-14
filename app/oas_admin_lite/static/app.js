@@ -52,4 +52,22 @@
 
     setBusy(form, submitter, isRun);
   });
+
+  document.addEventListener("input", function (event) {
+    var form = event.target.closest && event.target.closest(".script-exec-form");
+    if (!form) {
+      return;
+    }
+    var runButton = form.querySelector('button[formaction="/scripts/run"]');
+    if (runButton) {
+      runButton.disabled = true;
+      runButton.setAttribute("aria-disabled", "true");
+      runButton.setAttribute("title", "명령어 미리보기를 다시 수행하세요.");
+    }
+  });
+
+  document.querySelectorAll(".command-preview textarea").forEach(function (textarea) {
+    textarea.style.height = "auto";
+    textarea.style.height = textarea.scrollHeight + "px";
+  });
 }());
