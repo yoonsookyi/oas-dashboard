@@ -842,7 +842,6 @@ textarea:focus {
   padding: 0;
   flex: 0 0 16px;
 }
-.report-options {
 .report-field-section {
   padding: 14px;
   border: 1px solid var(--line);
@@ -886,6 +885,7 @@ textarea:focus {
   margin: 0;
   padding: 0;
 }
+.report-options {
   display: flex;
   align-items: center;
   gap: 18px;
@@ -1194,4 +1194,41 @@ textarea:focus {
     flex-basis: 100%;
     width: fit-content;
   }
+}
+
+/* Compact catalog audit report form. */
+.report-field-section { padding: 10px; }
+.report-field-section h3 { display: none; }
+.report-field-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px 10px;
+}
+.report-output { grid-column: 1 / -1; }
+.report-type { grid-column: span 2; }
+.report-fields { grid-column: span 4; }
+.report-online,
+.report-credentials,
+.report-folder,
+.report-depth { grid-column: span 3; }
+.report-skip-types,
+.report-skip-folders,
+.report-delimiter { grid-column: span 2; }
+.report-required {
+  border-color: #8fb7d8;
+  background: #f5faff;
+}
+.report-required label { color: #1e5d8f; }
+.report-required input,
+.report-required select { border-color: #8fb7d8; }
+.report-optional {
+  border-color: #e4b86a;
+  background: #fffaf1;
+}
+.report-optional label { color: #8a5b12; }
+.report-optional input { border-color: #e4b86a; }
+.report-example-launch { display: none; }
+.report-example-open-button { width: auto !important; }
+@media (max-width: 620px) {
+  .report-field-grid { grid-template-columns: 1fr; }
+  .report-field-grid > label { grid-column: 1 / -1; }
 }

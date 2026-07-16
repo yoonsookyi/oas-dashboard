@@ -139,6 +139,21 @@
       group.appendChild(input.closest("label"));
     });
   });
+  document.querySelectorAll('.script-exec-form input[name="arg_mode"][value="catalog_report"]').forEach(function (mode) {
+    var form = mode.closest(".script-exec-form");
+    var preview = form.querySelector('button[formaction="/scripts/preview"]');
+    if (!preview) {
+      return;
+    }
+    var button = document.createElement("button");
+    button.type = "button";
+    button.className = "secondary report-example-open-button";
+    button.setAttribute("data-report-example-open", "");
+    button.title = "\uc608\uc2dc\ub97c \uc120\ud0dd\ud558\uba74 \ubcf4\uace0\uc11c \uc785\ub825\uac12\uc774 \uc790\ub3d9 \uc801\uc6a9\ub429\ub2c8\ub2e4.";
+    button.textContent = "\uc608\uc2dc \ubcf4\uae30";
+    preview.before(button);
+  });
+
 
   document.querySelectorAll(".command-preview textarea").forEach(function (textarea) {
     textarea.style.height = "auto";
