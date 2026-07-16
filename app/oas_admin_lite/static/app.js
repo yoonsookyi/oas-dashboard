@@ -129,7 +129,7 @@
 
   document.querySelectorAll(".script-form-grid").forEach(function (grid) {
     var options = grid.querySelectorAll(".checkbox-field input[name^='report_']");
-    if (!options.length) {
+    if (!options.length || options[0].closest(".report-options")) {
       return;
     }
     var group = document.createElement("div");

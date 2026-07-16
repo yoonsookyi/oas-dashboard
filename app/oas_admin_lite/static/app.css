@@ -843,6 +843,49 @@ textarea:focus {
   flex: 0 0 16px;
 }
 .report-options {
+.report-field-section {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+}
+.report-field-section h3 {
+  margin: 0 0 12px;
+  font-size: 14px;
+}
+.report-field-grid {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) minmax(0, 2fr);
+  gap: 10px;
+}
+.report-field-grid .full { grid-column: 1 / -1; }
+.report-required {
+  border-color: #a8c0c2;
+  background: #f5fbfa;
+}
+.report-required h3,
+.report-required label { color: #176b3a; }
+.report-required input,
+.report-required select { border-color: #a8c0c2; }
+.report-optional {
+  border-color: #c6d2d3;
+  background: #fafcfd;
+}
+.report-optional h3,
+.report-optional label { color: #7f8d9c; }
+.report-optional input { border-color: #c6d2d3; }
+.report-field-grid .checkbox-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+  white-space: nowrap;
+}
+.report-field-grid .checkbox-field input[type="checkbox"] {
+  width: 16px;
+  min-height: 16px;
+  margin: 0;
+  padding: 0;
+}
   display: flex;
   align-items: center;
   gap: 18px;
@@ -982,6 +1025,7 @@ textarea:focus {
 @media (max-width: 620px) {
   .script-picker,
   .script-form-grid,
+  .report-field-grid,
   .script-bin-path { grid-template-columns: 1fr; }
   .script-step-head { grid-template-columns: 28px 1fr; }
   .step-number { width: 28px; height: 28px; }
