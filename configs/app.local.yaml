@@ -38,6 +38,7 @@ scripts:
   allowed:
     - "diagnostic_dump.sh"
     - "exportarchive.sh"
+    - "runcat.sh"
 
 security:
   username: "admin"

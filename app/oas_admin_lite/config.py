@@ -57,6 +57,7 @@ class ScriptsConfig(object):
         self.allowed = [
             "diagnostic_dump.sh",
             "exportarchive.sh",
+            "runcat.sh",
         ]
 
 

@@ -10,7 +10,7 @@ from .storage import Job
 # Admin Lite intentionally exposes only read-only diagnostics and export.
 # Other bitools scripts remain OAS utilities, but must never become executable
 # through this web application merely by being added to app.yaml.
-PERMITTED_SCRIPTS = ("diagnostic_dump.sh", "exportarchive.sh")
+PERMITTED_SCRIPTS = ("diagnostic_dump.sh", "exportarchive.sh", "runcat.sh")
 
 
 class ScriptState(object):

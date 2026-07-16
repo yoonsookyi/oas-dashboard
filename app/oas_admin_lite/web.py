@@ -214,6 +214,15 @@ SCRIPT_ACTIONS = [
             "실제 실행 버튼을 누르면 OAS 서버의 bitools/bin에서 diagnostic_dump.sh가 실행됩니다.",
         ],
     },
+    {
+        "script": "runcat.sh", "mode": "catalog_report", "label": "\uce74\ud0c8\ub85c\uadf8 \uac10\uc0ac \ubcf4\uace0\uc11c \ucd94\ucd9c",
+        "method": "runcat.sh -cmd report -outputFile <CSV file> -type <type> -fields \"field:field\" [-folder <path>] [-recursionDepth <n>] [-skipTypes <type>] [-excelFormat] -online <OBIPS URL> -credentials <properties file>",
+        "purpose": "Generates a read-only CSV audit and backup report from the Oracle Analytics web catalog.",
+        "required": ["Report output file", "Object type", "Report fields", "OBIPS URL", "Credentials properties file"],
+        "optional": ["Folder, recursion depth, skipped types/folders, delimiter, duplicate removal", "Excel format and force output only when needed"],
+        "result": "The CSV report is generated at the selected path. Logs and exit code are available in Jobs / Audit.",
+        "cautions": ["Only read-only runcat.sh -cmd report is generated.", "Credentials file contents are never read or displayed by this application.", "Force output may replace an existing report file."],
+    },
 ]
 
 PAGE_DESCRIPTIONS = {
@@ -725,6 +734,7 @@ def script_form_state(form):
         "export_options": first(form, "export_options"),
         "stdin_file": first(form, "stdin_file"),
         "diagnostic_zip": first(form, "diagnostic_zip"),
+        "report_output": first(form, "report_output"), "report_type": first(form, "report_type"), "report_fields": first(form, "report_fields"), "report_folder": first(form, "report_folder"), "report_depth": first(form, "report_depth"), "report_skip_types": first(form, "report_skip_types"), "report_skip_folders": first(form, "report_skip_folders"), "report_delimiter": first(form, "report_delimiter"), "report_distinct": first(form, "report_distinct"), "report_excel": first(form, "report_excel"), "report_force": first(form, "report_force"), "report_online": first(form, "report_online"), "report_credentials": first(form, "report_credentials"),
     }
 
 
@@ -740,17 +750,18 @@ def script_last_command(state, script):
 
 def script_brief(action, bitools_bin):
     optional_block = ''
-    if action.get("mode") != "diagnostic":
+    if True:
         optional_block = '<section class="script-info-block optional-parameters"><h3>옵션 파라미터</h3>{0}</section>'.format(script_list(action.get("optional") or []))
     return """
     <div class="script-brief">
+      <section class="script-info-block"><h3>\ubaa9\uc801</h3><p>{purpose}</p></section>
       <section class="script-info-block"><h3>실행 구문 형식</h3><code class="script-method-path">{bitools}</code><pre>{method}</pre></section>
       <section class="script-info-block required-parameters"><h3>필수 파라미터</h3>{required}</section>
       {optional_block}
       <section class="script-info-block caution"><h3>주의사항</h3>{cautions}</section>
     </div>
     """.format(
-        bitools=esc(bitools_bin),
+        bitools=esc(bitools_bin), purpose=esc(action.get("purpose", "")),
         method=esc(action.get("method", "")),
         required=script_list(action.get("required") or []),
         optional_block=optional_block,
@@ -798,6 +809,10 @@ def script_fields(action, values=None):
         <label class="full">ZIP file name<input name="diagnostic_zip" value="{diagnostic_zip}" placeholder="/u01/oas-admin-lite/bundles/oas-diagnostic.zip"></label>
         <p class="muted full">ZIP 파일명은 /u01/oas-admin-lite/bundles 기준으로 입력합니다. 실제 실행 시 diagnostic_dump.sh &lt;zip file name&gt; 형식으로 서버에서 실행됩니다.</p>
         """.format(diagnostic_zip=esc(values.get("diagnostic_zip", "")))
+    if action["mode"] == "catalog_report":
+        return """
+        <label class="full">Report output file<input name="report_output" value="{output}" placeholder="/u01/oas-admin-lite/backups/catalog-audit.csv"></label><label>Object type<select name="report_type">{types}</select></label><label>Report fields<input name="report_fields" value="{fields}" placeholder="Name:Path:Owner:Modified:ACL"></label><label>Catalog folder<input name="report_folder" value="{folder}" placeholder="/shared"></label><label>Recursion depth<input name="report_depth" value="{depth}" inputmode="numeric"></label><label>Skip types<input name="report_skip_types" value="{skip_types}" placeholder="Action:Favorites List"></label><label>Skip folders<input name="report_skip_folders" value="{skip_folders}"></label><label>Delimiter<input name="report_delimiter" value="{delimiter}"></label><label>OBIPS URL<input name="report_online" value="{online}" placeholder="https://oas.example.com/analytics/saw.dll"></label><label class="full">Credentials properties file<input name="report_credentials" value="{credentials}" placeholder="/u01/oas-admin-lite/data/catmancredentials.properties"></label><label class="checkbox-field"><input type="checkbox" name="report_distinct" value="1"{distinct}> Remove duplicates (-distinct)</label><label class="checkbox-field"><input type="checkbox" name="report_excel" value="1"{excel}> Excel CSV (-excelFormat)</label><label class="checkbox-field"><input type="checkbox" name="report_force" value="1"{force}> Replace output (-forceoutputFile)</label>
+        """.format(output=esc(values.get("report_output", "")), types=report_type_options(values.get("report_type", "All")), fields=esc(values.get("report_fields", "Name:Path:Owner:Modified:ACL")), folder=esc(values.get("report_folder", "/shared")), depth=esc(values.get("report_depth", "")), skip_types=esc(values.get("report_skip_types", "")), skip_folders=esc(values.get("report_skip_folders", "")), delimiter=esc(values.get("report_delimiter", "")), online=esc(values.get("report_online", "")), credentials=esc(values.get("report_credentials", "")), distinct=checked(values, "report_distinct"), excel=checked(values, "report_excel"), force=checked(values, "report_force"))
     return '<label class="full">Arguments<input name="args" placeholder="help 출력에서 확인한 옵션 입력"></label>'
 
 
@@ -816,7 +831,13 @@ def script_request(form):
     elif mode == "diagnostic":
         zip_name = required(form, "diagnostic_zip", "ZIP file name")
         raw_args = join_args([zip_name])
+    elif mode == "catalog_report":
+        if script != "runcat.sh":
+            raise ValueError("Catalog report mode is only available for runcat.sh")
+        raw_args = catalog_report_args(form)
     else:
+        if script == "runcat.sh":
+            raise ValueError("runcat.sh must use the Catalog report form")
         raw_args = first(form, "args")
     return script, raw_args, stdin_text, stdin_label
 
@@ -832,6 +853,35 @@ def validate_export_options(value):
     if "encryptionpassword" in (value or "").lower():
         raise ValueError("Optional parameters에는 encryptionpassword를 입력하지 마세요. Password file path로 지정한 파일을 stdin으로 전달합니다.")
 
+
+REPORT_TYPES = ("All", "Analysis", "Dashboard", "Dashboard Prompt", "Filter", "Agent", "Security ACL", "Workbook", "Accounts", "Folder")
+REPORT_FIELDS = {"Created", "Creator", "Modified", "Modifier", "Owner", "ACL", "Description", "Signature", "Folder", "Name", "Path", "Description ID", "Size", "Caption ID", "Tag", "Properties", "Internal Properties", "Content State", "Matching Accounts", "Account Name", "Account GUID", "Account Display Name", "Account Type", "Account Status", "Must Have Permission", "Must NOT Have Permission", "Group Members", "Formula", "Table", "Column", "Subject Area", "SAW Variables", "RPD Variables", "Session Variables", "SQL", "Missing Column IDs", "Unused Column IDs", "Dashboard Style", "Email", "Privilege", "XML", "References"}
+
+def catalog_report_args(form):
+    output_file = required(form, "report_output", "Report output file"); report_type = required(form, "report_type", "Object type"); fields = required(form, "report_fields", "Report fields"); online = required(form, "report_online", "OBIPS URL"); credentials = required(form, "report_credentials", "Credentials properties file")
+    if report_type not in REPORT_TYPES: raise ValueError("Unsupported catalog report type")
+    validate_report_fields(fields)
+    if not online.lower().startswith(("http://", "https://")): raise ValueError("OBIPS URL must start with http:// or https://")
+    depth = first(form, "report_depth").strip()
+    if depth and (not depth.isdigit() or int(depth) < 1): raise ValueError("Recursion depth must be a positive integer")
+    args = ["-cmd", "report", "-forceoutputFile" if first(form, "report_force") == "1" else "-outputFile", output_file, "-type", report_type, "-fields", fields]
+    for option, key in (("-folder", "report_folder"), ("-recursionDepth", "report_depth"), ("-skipTypes", "report_skip_types"), ("-skipFolder", "report_skip_folders"), ("-delimiter", "report_delimiter")):
+        value = first(form, key).strip()
+        if value: args.extend([option, value])
+    if first(form, "report_distinct") == "1": args.append("-distinct")
+    if first(form, "report_excel") == "1": args.append("-excelFormat")
+    args.extend(["-online", online, "-credentials", credentials])
+    return " ".join(shlex.quote(item) for item in args)
+
+def validate_report_fields(value):
+    fields = [item.strip() for item in value.split(":") if item.strip()]
+    if not fields or any(item not in REPORT_FIELDS for item in fields): raise ValueError("Report fields must be colon-separated values supported by runcat report")
+
+def report_type_options(selected):
+    return "".join('<option value="{0}"{1}>{0}</option>'.format(esc(item), " selected" if item == selected else "") for item in REPORT_TYPES)
+
+def checked(values, key):
+    return " checked" if values.get(key) == "1" else ""
 
 def join_args(required_parts, optional_text=""):
     parts = [shlex.quote(item.strip()) for item in required_parts if item and item.strip()]

@@ -16,7 +16,7 @@ class ConfigTests(unittest.TestCase):
         data = parse_simple_yaml(Path("configs/app.yaml.sample").read_text(encoding="utf-8"))
         self.assertEqual(data["server"]["listen"], "127.0.0.1:18080")
         self.assertNotIn("datamodel.sh", data["scripts"]["allowed"])
-        self.assertNotIn("runcat.sh", data["scripts"]["allowed"])
+        self.assertIn("runcat.sh", data["scripts"]["allowed"])
         self.assertIn("exportarchive.sh", data["scripts"]["allowed"])
         self.assertIn("diagnostic_dump.sh", data["scripts"]["allowed"])
         self.assertIn("/u01/stage/patches", data["patch"]["allowed_patch_dirs"])
@@ -26,7 +26,7 @@ class ConfigTests(unittest.TestCase):
     def test_load_local_config(self):
         cfg = load_config("configs/app.local.yaml")
         self.assertEqual(cfg.paths.root, ".local/oas-admin-lite")
-        self.assertEqual(cfg.scripts.allowed, ["diagnostic_dump.sh", "exportarchive.sh"])
+        self.assertEqual(cfg.scripts.allowed, ["diagnostic_dump.sh", "exportarchive.sh", "runcat.sh"])
         self.assertEqual(cfg.oas.catalog_api_path, "/mock/catalog")
         self.assertEqual(cfg.ohs.domain_home, ".local/mock/ohs_domain")
         self.assertEqual(cfg.ohs.http_port, "7777")
