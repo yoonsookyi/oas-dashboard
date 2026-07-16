@@ -473,7 +473,6 @@ def catalog_page(ctx, query):
     folder_rows = summary.get("folder_rows") or []
     all_items = summary.get("all_items") or summary.get("items") or []
     items = filtered_catalog_items(summary.get("items") or [], query)
-    acl_summary = summary.get("acl_summary") or {}
     content = """
 <section class="panel compact-panel" id="summary">
   <div class="panel-head">
@@ -485,7 +484,6 @@ def catalog_page(ctx, query):
     {total_card}
     {modified_card}
     {owner_card}
-    {acl_card}
   </div>
 </section>
 <section class="insight-grid">
@@ -497,18 +495,9 @@ def catalog_page(ctx, query):
     <div class="panel-head"><h2>폴더 구조 요약</h2></div>
     {folder_tree}
   </section>
-  <section class="panel compact-panel">
-    <div class="panel-head"><h2>ACL 리스크</h2></div>
-    {acl_panel}
-  </section>
 </section>
 <section class="panel compact-panel owner-panel">
   {owner_workspace}
-</section>
-<section class="panel" id="detail">
-  <div class="panel-head"><h2>Catalog Detail</h2><span class="muted">최대 {detail_limit}개 표시</span></div>
-  {filters}
-  {detail_table}
 </section>
 """.format(
         endpoint=esc(summary.get("endpoint", "")),
@@ -520,14 +509,9 @@ def catalog_page(ctx, query):
         total_card=catalog_card("Total Assets", summary.get("total_assets", 0), "수집된 catalog item 전체", ""),
         modified_card=catalog_card("Modified 30 Days", summary.get("modified_30_days", 0), "최근 변경된 이관 영향 후보", "warn"),
         owner_card=catalog_card("Owner Count", summary.get("owner_count", 0), "고유 owner 수", ""),
-        acl_card=catalog_card("ACL Risks", acl_summary.get("risk_total", 0), "ACL checked {0}/{1}".format(acl_summary.get("checked", 0), acl_summary.get("eligible", 0)), "risk"),
         type_chart=type_chart(type_rows),
         folder_tree=folder_tree(folder_rows),
-        acl_panel=acl_panel(acl_summary),
         owner_workspace=owner_workspace(owner_rows, all_items, first(query, "owner")),
-        filters=catalog_filters(summary, query),
-        detail_table=catalog_detail_table(items),
-        detail_limit=esc((summary.get("limits") or {}).get("detail_limit", 100)),
     )
     return layout(ctx, "Catalog", "catalog", content, query)
 
