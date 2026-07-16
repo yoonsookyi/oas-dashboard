@@ -230,7 +230,7 @@ SCRIPT_ACTIONS = [
 
 PAGE_DESCRIPTIONS = {
     "resources": "서버 리소스, OAS 기동 상태와 관리 화면 접속 경로를 한눈에 확인합니다.",
-    "catalog": "설정된 인증으로 Catalog를 수집하고 자산, 소유자, 폴더 및 ACL 현황을 확인합니다.",
+    "catalog": "카탈로그 자산 유형, 폴더별 자산 수와 소유자별 상세 목록을 확인합니다.",
     "patch": "ORACLE_HOME의 OPatch inventory를 조회하여 적용된 패치 수준을 확인합니다.",
     "scripts": "OAS 백업·진단 스크립트의 명령어를 미리 확인한 뒤 안전하게 실행합니다.",
     "jobs": "카탈로그, 패치, 스크립트 작업의 명령어와 결과 이력을 확인합니다.",
@@ -479,7 +479,7 @@ def catalog_page(ctx, query):
     <h2>수집 상태</h2>
     <form method="post" action="/catalog/scan"><button type="submit">수집 실행</button></form>
   </div>
-  <dl class="kv compact"><dt>Endpoint</dt><dd>{endpoint}</dd><dt>Auth User</dt><dd>{auth_user}</dd><dt>Last Scan</dt><dd>{last_scan}</dd><dt>Status</dt><dd>{status}</dd><dt>HTTP</dt><dd>{http_status}</dd><dt>Message</dt><dd>{message}</dd></dl>
+  <dl class="kv compact"><dt>Endpoint</dt><dd>{endpoint}</dd><dt>Auth User</dt><dd>{auth_user}</dd><dt>Last Scan</dt><dd>{last_scan}</dd><dt>Status</dt><dd>{status}</dd></dl>
   <div class="catalog-summary">
     {total_card}
     {modified_card}
@@ -492,7 +492,7 @@ def catalog_page(ctx, query):
     {type_chart}
   </section>
   <section class="panel compact-panel">
-    <div class="panel-head"><h2>폴더 구조 요약</h2></div>
+    <div class="panel-head"><h2>폴더 구조 요약</h2><span class="muted">폴더별 자산 수</span></div>
     {folder_tree}
   </section>
 </section>
@@ -504,11 +504,9 @@ def catalog_page(ctx, query):
         auth_user=esc(summary.get("auth_user", "")),
         last_scan=fmt_ts(summary.get("last_scan", 0)),
         status=badge(summary.get("status", "READY")),
-        http_status=esc(summary.get("http_status", "")),
-        message=esc(summary.get("message", "")),
-        total_card=catalog_card("Total Assets", summary.get("total_assets", 0), "수집된 catalog item 전체", ""),
-        modified_card=catalog_card("Modified 30 Days", summary.get("modified_30_days", 0), "최근 변경된 이관 영향 후보", "warn"),
-        owner_card=catalog_card("Owner Count", summary.get("owner_count", 0), "고유 owner 수", ""),
+        total_card=catalog_card("전체 자산", summary.get("total_assets", 0), "수집된 모든 카탈로그 객체", ""),
+        modified_card=catalog_card("최근 30일 변경", summary.get("modified_30_days", 0), "최근 변경된 카탈로그 자산", "warn"),
+        owner_card=catalog_card("Owner 수", summary.get("owner_count", 0), "카탈로그 자산을 소유한 사용자", ""),
         type_chart=type_chart(type_rows),
         folder_tree=folder_tree(folder_rows),
         owner_workspace=owner_workspace(owner_rows, all_items, first(query, "owner")),
