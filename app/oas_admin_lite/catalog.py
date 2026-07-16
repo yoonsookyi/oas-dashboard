@@ -91,6 +91,7 @@ class CatalogService(object):
                 items = normalize_items(extract_catalog_items(parsed))
 
             items = dedupe_items(items)
+            items = exclude_system_folders(items)
             if items:
                 acl_summary = self._enrich_acl(items, errors)
 
@@ -285,6 +286,7 @@ def empty_dashboard(data=None):
         "type_rows": [],
         "owners": [],
         "folder_rows": [],
+        "all_items": [],
         "items": [],
         "supported_types": [],
         "total_assets": 0,
@@ -306,12 +308,14 @@ def empty_dashboard(data=None):
         result["owners"] = result.get("owners") or []
         result["folder_rows"] = result.get("folder_rows") or []
         result["items"] = result.get("items") or []
+        result["all_items"] = result.get("all_items") or result["items"]
         result["supported_types"] = result.get("supported_types") or []
         result["acl_summary"] = result.get("acl_summary") or empty_acl_summary()
     return result
 
 
 def build_dashboard(endpoint, scan_endpoint, auth_user, last_scan, status, http_status, content_type, message, items, supported_types, errors, acl_summary):
+    items = exclude_system_folders(items)
     counts = count_by(items, "type")
     owner_counter = count_by_owner(items)
     folder_counter = count_by(items, "folder")
@@ -332,6 +336,7 @@ def build_dashboard(endpoint, scan_endpoint, auth_user, last_scan, status, http_
         "counts": counts,
         "type_rows": type_rows,
         "owners": owner_rows,
+        "all_items": items,
         "folder_rows": folder_rows,
         "items": detail_items,
         "supported_types": supported_types,
@@ -454,6 +459,18 @@ def dedupe_items(items):
     return result
 
 
+
+def exclude_system_folders(items):
+    result = []
+    for item in items or []:
+        item_type = (item.get("type") or "").strip().lower()
+        owner = (item.get("owner") or "").strip().lower()
+        if item_type in ("folder", "folders") and owner == "system account":
+            continue
+        result.append(item)
+    return result
+
+
 def count_by(items, key):
     counts = {}
     for item in items:
@@ -472,7 +489,7 @@ def count_by_owner(items):
 
 def build_owner_rows(items, owner_counter):
     rows = []
-    for owner in sorted(owner_counter, key=lambda item: owner_counter[item], reverse=True)[:TOP_LIMIT]:
+    for owner in sorted(owner_counter, key=lambda item: owner_counter[item], reverse=True):
         owner_items = [item for item in items if (item.get("owner") or "unknown") == owner]
         folders = count_by(owner_items, "folder")
         last_modified = ""

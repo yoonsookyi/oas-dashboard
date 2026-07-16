@@ -1195,6 +1195,8 @@ textarea:focus {
     flex-direction: column;
   }
   .settings-kv { grid-template-columns: 1fr; }
+
+
   .status-card-head .badge,
   .metric-head .badge {
     flex-basis: 100%;
@@ -1202,6 +1204,39 @@ textarea:focus {
   }
 }
 
+.owner-workspace {
+  display: grid;
+  grid-template-columns: minmax(190px, 0.32fr) minmax(0, 1fr);
+  gap: 14px;
+}
+.owner-list {
+  max-height: 620px;
+  overflow: auto;
+  padding-right: 6px;
+}
+.owner-list h2 { margin: 0 0 10px; font-size: 16px; }
+.owner-choice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--ink);
+  background: var(--surface-alt);
+  text-decoration: none;
+}
+.owner-choice:hover,
+.owner-choice.active { border-color: #8fb7d8; background: #f5faff; }
+.owner-choice span { overflow-wrap: anywhere; }
+.owner-choice b { flex: 0 0 auto; color: var(--muted); }
+.owner-detail { min-width: 0; }
+@media (max-width: 820px) {
+  .owner-workspace { grid-template-columns: 1fr; }
+  .owner-list { max-height: 260px; }
+}
 /* Compact catalog audit report form. */
 .report-field-section { padding: 10px; }
 .report-field-section h3 { display: none; }

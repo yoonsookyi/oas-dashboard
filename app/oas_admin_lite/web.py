@@ -471,6 +471,7 @@ def catalog_page(ctx, query):
     type_rows = summary.get("type_rows") or rows_from_counts(summary.get("counts") or {})
     owner_rows = summary.get("owners") or []
     folder_rows = summary.get("folder_rows") or []
+    all_items = summary.get("all_items") or summary.get("items") or []
     items = filtered_catalog_items(summary.get("items") or [], query)
     acl_summary = summary.get("acl_summary") or {}
     content = """
@@ -502,8 +503,7 @@ def catalog_page(ctx, query):
   </section>
 </section>
 <section class="panel compact-panel owner-panel">
-  <div class="panel-head"><h2>Owner Top 10</h2></div>
-  {owner_table}
+  {owner_workspace}
 </section>
 <section class="panel" id="detail">
   <div class="panel-head"><h2>Catalog Detail</h2><span class="muted">최대 {detail_limit}개 표시</span></div>
@@ -524,7 +524,7 @@ def catalog_page(ctx, query):
         type_chart=type_chart(type_rows),
         folder_tree=folder_tree(folder_rows),
         acl_panel=acl_panel(acl_summary),
-        owner_table=owner_table(owner_rows),
+        owner_workspace=owner_workspace(owner_rows, all_items, first(query, "owner")),
         filters=catalog_filters(summary, query),
         detail_table=catalog_detail_table(items),
         detail_limit=esc((summary.get("limits") or {}).get("detail_limit", 100)),
@@ -582,6 +582,31 @@ def owner_table(rows):
         status = "FAILED" if str(row.get("owner", "")).lower() == "unknown" else "WARN" if int(row.get("risk", 0) or 0) else "OK"
         body.append('<tr><td>{0}</td><td>{1}</td><td>{2}</td><td>{3}</td><td>{4}</td></tr>'.format(esc(row.get("owner", "unknown")), esc(row.get("count", 0)), esc(row.get("lastModified", "") or "-"), esc(row.get("folder", "-")), count_badge(status, int(row.get("risk", 0) or 0))))
     return '<table class="owner-table"><thead><tr><th>Owner</th><th>Items</th><th>최근 변경</th><th>주요 폴더</th><th>리스크</th></tr></thead><tbody>{0}</tbody></table>'.format("".join(body))
+
+
+
+def owner_workspace(rows, items, selected_owner):
+    if not rows:
+        return '<p class="muted">\uc218\uc9d1\ub41c owner\uac00 \uc5c6\uc2b5\ub2c8\ub2e4.</p>'
+    owners = [row.get("owner", "unknown") for row in rows]
+    selected_owner = selected_owner if selected_owner in owners else owners[0]
+    links = []
+    for row in rows:
+        owner = row.get("owner", "unknown")
+        active = " active" if owner == selected_owner else ""
+        links.append('<a class="owner-choice{0}" href="/catalog?owner={1}"><span>{2}</span><b>{3}</b></a>'.format(active, quote(owner), esc(owner), esc(row.get("count", 0))))
+    selected_items = [item for item in items if item.get("owner") == selected_owner]
+    selected_items.sort(key=lambda item: item.get("lastModified") or "", reverse=True)
+    return '<div class="owner-workspace"><aside class="owner-list"><h2>Owners</h2>{0}</aside><section class="owner-detail"><div class="panel-head"><h2>{1}</h2><span class="muted">{2} items</span></div>{3}</section></div>'.format("".join(links), esc(selected_owner), len(selected_items), owner_detail_table(selected_items))
+
+
+def owner_detail_table(items):
+    if not items:
+        return '<p class="muted">\uc120\ud0dd\ud55c owner\uc758 \uc790\uc0b0\uc774 \uc5c6\uc2b5\ub2c8\ub2e4.</p>'
+    body = []
+    for item in items:
+        body.append('<tr><td>{0}</td><td>{1}</td><td>{2}</td><td>{3}</td><td>{4}</td></tr>'.format(esc(item.get("name", "-")), esc(item.get("type", "unknown")), esc(item.get("owner", "unknown")), esc(item.get("lastModified", "") or "-"), esc(item.get("folder", "unknown"))))
+    return '<table><thead><tr><th>Name</th><th>Type</th><th>Owner</th><th>Last Modified</th><th>Folder</th></tr></thead><tbody>{0}</tbody></table>'.format("".join(body))
 
 
 def catalog_filters(summary, query):

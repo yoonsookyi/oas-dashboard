@@ -197,6 +197,16 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(summary["acl_summary"]["risk_total"], 2)
 
 
+    def test_catalog_summary_excludes_system_account_folders(self):
+        items = normalize_items([
+            {"id": "root", "name": "Shared", "type": "folders", "owner": "System Account", "path": "/shared"},
+            {"id": "book-1", "name": "Sales", "type": "workbooks", "owner": "analyst", "path": "/shared/Sales"},
+        ])
+        summary = build_dashboard("endpoint", "endpoint", "admin", 1, "SUCCESS", "HTTP 200 OK", "application/json", "ok", items, [], [], {"checked": 0, "eligible": 0, "risk_total": 0, "broad_write": 0, "permission_management": 0, "acl_failed": 0})
+        self.assertEqual(summary["total_assets"], 1)
+        self.assertNotIn("folders", summary["counts"])
+        self.assertEqual(summary["folder_rows"], [{"folder": "/shared", "count": 1}])
+
     def test_catalog_type_endpoint_includes_search_wildcard(self):
         cfg = load_config("configs/app.local.yaml")
         with tempfile.TemporaryDirectory() as tmp:
