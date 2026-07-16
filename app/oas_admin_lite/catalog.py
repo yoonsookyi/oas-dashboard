@@ -19,7 +19,7 @@ PARENT_KEYS = ("parentId", "parent", "parentName")
 PATH_KEYS = ("path", "catalogPath", "location", "absolutePath")
 
 TYPE_PAGE_LIMIT = 500
-TYPE_PAGE_MAX = 3
+TYPE_PAGE_MAX = 20
 ACL_CHECK_LIMIT = 50
 DETAIL_LIMIT = 100
 TOP_LIMIT = 10
@@ -243,7 +243,7 @@ class CatalogService(object):
 
     def _catalog_type_endpoint(self, type_name, page):
         base = strip_query(self._catalog_endpoint()).rstrip("/")
-        query = urlencode({"search": "*", "limit": TYPE_PAGE_LIMIT, "page": page})
+        query = urlencode({"manageContent": "true", "search": "*", "limit": TYPE_PAGE_LIMIT, "page": page})
         return "{0}/{1}?{2}".format(base, quote(str(type_name).strip(), safe=""), query)
 
     def _catalog_action_endpoint(self, type_name, item_id, action):

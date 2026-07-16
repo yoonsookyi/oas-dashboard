@@ -204,6 +204,7 @@ class ConfigTests(unittest.TestCase):
             service = CatalogService(cfg, store)
             endpoint = service._catalog_type_endpoint("datasets", 1)
         self.assertIn("/catalog/datasets?", endpoint)
+        self.assertIn("manageContent=true", endpoint)
         self.assertIn("search=%2A", endpoint)
         self.assertIn("limit=500", endpoint)
         self.assertIn("page=1", endpoint)
