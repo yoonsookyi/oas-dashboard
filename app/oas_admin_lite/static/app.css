@@ -901,7 +901,7 @@ textarea:focus {
 }
 .report-example-launch button { width: auto; }
 .report-example-dialog {
-  width: min(360px, calc(100vw - 32px));
+  width: min(500px, calc(100vw - 32px));
   max-height: min(560px, calc(100vh - 32px));
   padding: 14px;
   border: 1px solid var(--line-strong);
@@ -921,13 +921,13 @@ textarea:focus {
 .report-example-head h3 { margin: 0; }
 .report-example-head p { margin: 5px 0 0; color: var(--muted); }
 .report-example-head button { width: auto; }
-.report-example-list { display: grid; justify-items: start; gap: 6px; }
+.report-example-list { display: grid; gap: 6px; }
 .report-example-choice {
-  display: grid;
-  justify-items: start;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   gap: 4px;
-  justify-self: start;
-  width: min(100%, 320px);
+  width: 100%;
   padding: 8px 10px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -937,6 +937,11 @@ textarea:focus {
   box-shadow: none;
 }
 .report-example-choice:hover { border-color: #9fc9c4; background: #eef7f5; }
+.report-example-choice strong,
+.report-example-choice span {
+  width: 100%;
+  text-align: left;
+}
 .report-example-choice span { color: var(--muted); font-size: 12px; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
 .script-form-grid .full,
 .script-exec-form .full {
