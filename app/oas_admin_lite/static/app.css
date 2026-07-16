@@ -681,7 +681,7 @@ textarea:focus {
 }
 .script-picker {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 .script-option {
@@ -826,6 +826,21 @@ textarea:focus {
   display: grid;
   grid-template-columns: minmax(140px, 1fr) minmax(0, 2fr);
   gap: 10px;
+}
+.script-form-grid .checkbox-field {
+  display: inline-flex;
+  align-items: center;
+  align-self: end;
+  gap: 8px;
+  min-height: 42px;
+  white-space: nowrap;
+}
+.script-form-grid .checkbox-field input[type="checkbox"] {
+  width: 16px;
+  min-height: 16px;
+  margin: 0;
+  padding: 0;
+  flex: 0 0 16px;
 }
 .script-form-grid .full,
 .script-exec-form .full {

@@ -187,6 +187,7 @@ SCRIPT_ACTIONS = [
     {
         "script": "exportarchive.sh",
         "mode": "exportarchive",
+        "short_label": "\ud658\uacbd \ubc31\uc5c5",
         "label": "OAS 환경 백업 내보내기",
         "method": "exportarchive.sh <service instance key> <export directory> {optional parameters} < /path/exportpwd.txt",
         "purpose": "서비스 인스턴스의 환경 메타데이터를 BAR 파일로 내보내 이관, 백업, 비교 작업에 사용할 수 있게 합니다.",
@@ -202,6 +203,7 @@ SCRIPT_ACTIONS = [
     {
         "script": "diagnostic_dump.sh",
         "mode": "diagnostic",
+        "short_label": "\uc9c4\ub2e8 \ub85c\uadf8",
         "label": "OAS 지원용 진단 로그 수집",
         "method": "diagnostic_dump.sh <zip file name>",
         "purpose": "Oracle Support 또는 Development 조직에 제공할 OAS 진단 번들 ZIP을 수집합니다.",
@@ -216,6 +218,7 @@ SCRIPT_ACTIONS = [
     },
     {
         "script": "runcat.sh", "mode": "catalog_report", "label": "\uce74\ud0c8\ub85c\uadf8 \uac10\uc0ac \ubcf4\uace0\uc11c \ucd94\ucd9c",
+        "short_label": "\uac10\uc0ac \ubcf4\uace0\uc11c",
         "method": "runcat.sh -cmd report -outputFile <CSV file> -type <type> -fields \"field:field\" [-folder <path>] [-recursionDepth <n>] [-skipTypes <type>] [-excelFormat] -online <OBIPS URL> -credentials <properties file>",
         "purpose": "Generates a read-only CSV audit and backup report from the Oracle Analytics web catalog.",
         "required": ["Report output file", "Object type", "Report fields", "OBIPS URL", "Credentials properties file"],
@@ -750,18 +753,17 @@ def script_last_command(state, script):
 
 def script_brief(action, bitools_bin):
     optional_block = ''
-    if True:
+    if action.get("mode") != "diagnostic":
         optional_block = '<section class="script-info-block optional-parameters"><h3>옵션 파라미터</h3>{0}</section>'.format(script_list(action.get("optional") or []))
     return """
     <div class="script-brief">
-      <section class="script-info-block"><h3>\ubaa9\uc801</h3><p>{purpose}</p></section>
       <section class="script-info-block"><h3>실행 구문 형식</h3><code class="script-method-path">{bitools}</code><pre>{method}</pre></section>
       <section class="script-info-block required-parameters"><h3>필수 파라미터</h3>{required}</section>
       {optional_block}
       <section class="script-info-block caution"><h3>주의사항</h3>{cautions}</section>
     </div>
     """.format(
-        bitools=esc(bitools_bin), purpose=esc(action.get("purpose", "")),
+        bitools=esc(bitools_bin),
         method=esc(action.get("method", "")),
         required=script_list(action.get("required") or []),
         optional_block=optional_block,
@@ -791,7 +793,7 @@ def script_picker(actions, selected):
     buttons = []
     for item in actions:
         active = " active" if item["script"] == selected else ""
-        buttons.append('<button class="script-option{active}" type="submit" name="script" value="{script}"><strong>{label}</strong><span>{script}</span></button>'.format(active=active, script=esc(item["script"]), label=esc(item["label"])))
+        buttons.append('<button class="script-option{active}" type="submit" name="script" value="{script}"><strong>{label}</strong><span>{script}</span></button>'.format(active=active, script=esc(item["script"]), label=esc(item.get("short_label", item["label"]))))
     return '<form method="get" action="/scripts" class="script-picker">{0}</form>'.format("".join(buttons))
 
 
