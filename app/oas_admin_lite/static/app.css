@@ -901,9 +901,9 @@ textarea:focus {
 }
 .report-example-launch button { width: auto; }
 .report-example-dialog {
-  width: min(680px, calc(100vw - 32px));
-  max-height: min(680px, calc(100vh - 32px));
-  padding: 20px;
+  width: min(360px, calc(100vw - 32px));
+  max-height: min(560px, calc(100vh - 32px));
+  padding: 14px;
   border: 1px solid var(--line-strong);
   border-radius: 12px;
   color: var(--ink);
@@ -915,19 +915,20 @@ textarea:focus {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 14px;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 .report-example-head h3 { margin: 0; }
 .report-example-head p { margin: 5px 0 0; color: var(--muted); }
 .report-example-head button { width: auto; }
-.report-example-list { display: grid; gap: 10px; }
+.report-example-list { display: grid; justify-items: start; gap: 6px; }
 .report-example-choice {
   display: grid;
   justify-items: start;
   gap: 4px;
-  width: 100%;
-  padding: 12px;
+  justify-self: start;
+  width: min(100%, 320px);
+  padding: 8px 10px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #f8fafc;
