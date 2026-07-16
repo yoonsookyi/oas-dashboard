@@ -220,7 +220,7 @@ SCRIPT_ACTIONS = [
         "script": "runcat.sh", "mode": "catalog_report", "label": "\uce74\ud0c8\ub85c\uadf8 \uac10\uc0ac \ubcf4\uace0\uc11c \ucd94\ucd9c",
         "short_label": "\uac10\uc0ac \ubcf4\uace0\uc11c",
         "method": "runcat.sh -cmd report -outputFile <CSV file> -type <type> -fields \"field:field\" [-folder <path>] [-recursionDepth <n>] [-skipTypes <type>] [-excelFormat] -online <OBIPS URL> -credentials <properties file>",
-        "purpose": "Generates a read-only CSV audit and backup report from the Oracle Analytics web catalog.",
+        "purpose": "Oracle Analytics \uce74\ud0c8\ub85c\uadf8\uc758 \uac1d\uccb4, \uc18c\uc720\uc790, ACL \uc815\ubcf4\ub97c \uc77d\uae30 \uc804\uc6a9 CSV \uac10\uc0ac \ubcf4\uace0\uc11c\ub85c \ucd94\ucd9c\ud569\ub2c8\ub2e4.",
         "required": ["Report output file", "Object type", "Report fields", "OBIPS URL", "Credentials properties file"],
         "optional": ["Folder, recursion depth, skipped types/folders, delimiter, duplicate removal", "Excel format and force output only when needed"],
         "result": "The CSV report is generated at the selected path. Logs and exit code are available in Jobs / Audit.",
@@ -797,6 +797,21 @@ def script_picker(actions, selected):
     return '<form method="get" action="/scripts" class="script-picker">{0}</form>'.format("".join(buttons))
 
 
+def catalog_report_examples():
+    return """
+    <div class="full report-example-launch"><button type="button" class="secondary" data-report-example-open>\uc608\uc2dc \ubcf4\uae30</button><span class="field-help">\uc608\uc2dc\ub97c \uc120\ud0dd\ud558\uba74 \ubcf4\uace0\uc11c \uc785\ub825\uac12\uc774 \uc790\ub3d9 \uc801\uc6a9\ub429\ub2c8\ub2e4.</span></div>
+    <dialog class="report-example-dialog" data-report-example-dialog aria-label="\uce74\ud0c8\ub85c\uadf8 \uac10\uc0ac \ubcf4\uace0\uc11c \uc608\uc2dc">
+      <div class="report-example-head"><div><h3>\ubcf4\uace0\uc11c \uc608\uc2dc</h3><p>\uc120\ud0dd \ud6c4 \uc785\ub825\uac12\uc744 \ud544\uc694\uc5d0 \ub9de\uac8c \uc218\uc815\ud558\uc138\uc694.</p></div><button type="button" class="secondary" data-report-example-close>\ub2eb\uae30</button></div>
+      <div class="report-example-list">
+        <button type="button" class="report-example-choice" data-report-example data-report-output="/u01/oas-admin-lite/backups/catalog-analysis.csv" data-report-type="Analysis" data-report-fields="Name:Path:Owner:Subject Area:Table:Column" data-report-folder="/shared"><strong>Analysis \uc790\uc0b0 \ubaa9\ub85d</strong><span>Name, Path, Owner, Subject Area, Table, Column</span></button>
+        <button type="button" class="report-example-choice" data-report-example data-report-output="/u01/oas-admin-lite/backups/catalog-dashboard.csv" data-report-type="Dashboard" data-report-fields="Name:Path:Owner:Dashboard Style" data-report-folder="/shared"><strong>Dashboard \uc790\uc0b0 \ubaa9\ub85d</strong><span>Name, Path, Owner, Dashboard Style</span></button>
+        <button type="button" class="report-example-choice" data-report-example data-report-output="/u01/oas-admin-lite/backups/catalog-privileges.csv" data-report-type="Security ACL" data-report-fields="Path:Privilege" data-report-folder="/system/privs"><strong>\uad8c\ud55c \ubaa9\ub85d</strong><span>Security ACL, Path, Privilege</span></button>
+        <button type="button" class="report-example-choice" data-report-example data-report-output="/u01/oas-admin-lite/backups/catalog-acl.csv" data-report-type="All" data-report-fields="Path:ACL" data-report-folder="/shared"><strong>ACL \uac10\uc0ac</strong><span>All objects, Path, ACL</span></button>
+      </div>
+    </dialog>
+    """
+
+
 def script_fields(action, values=None):
     values = values or {}
     if action["mode"] == "exportarchive":
@@ -812,7 +827,7 @@ def script_fields(action, values=None):
         <p class="muted full">ZIP 파일명은 /u01/oas-admin-lite/bundles 기준으로 입력합니다. 실제 실행 시 diagnostic_dump.sh &lt;zip file name&gt; 형식으로 서버에서 실행됩니다.</p>
         """.format(diagnostic_zip=esc(values.get("diagnostic_zip", "")))
     if action["mode"] == "catalog_report":
-        return """
+        return catalog_report_examples() + """
         <label class="full">Report output file<input name="report_output" value="{output}" placeholder="/u01/oas-admin-lite/backups/catalog-audit.csv"></label><label>Object type<select name="report_type">{types}</select></label><label>Report fields<input name="report_fields" value="{fields}" placeholder="Name:Path:Owner:Modified:ACL"></label><label>Catalog folder<input name="report_folder" value="{folder}" placeholder="/shared"></label><label>Recursion depth<input name="report_depth" value="{depth}" inputmode="numeric"></label><label>Skip types<input name="report_skip_types" value="{skip_types}" placeholder="Action:Favorites List"></label><label>Skip folders<input name="report_skip_folders" value="{skip_folders}"></label><label>Delimiter<input name="report_delimiter" value="{delimiter}"></label><label>OBIPS URL<input name="report_online" value="{online}" placeholder="https://oas.example.com/analytics/saw.dll"></label><label class="full">Credentials properties file<input name="report_credentials" value="{credentials}" placeholder="/u01/oas-admin-lite/data/catmancredentials.properties"></label><label class="checkbox-field"><input type="checkbox" name="report_distinct" value="1"{distinct}> Remove duplicates (-distinct)</label><label class="checkbox-field"><input type="checkbox" name="report_excel" value="1"{excel}> Excel CSV (-excelFormat)</label><label class="checkbox-field"><input type="checkbox" name="report_force" value="1"{force}> Replace output (-forceoutputFile)</label>
         """.format(output=esc(values.get("report_output", "")), types=report_type_options(values.get("report_type", "All")), fields=esc(values.get("report_fields", "Name:Path:Owner:Modified:ACL")), folder=esc(values.get("report_folder", "/shared")), depth=esc(values.get("report_depth", "")), skip_types=esc(values.get("report_skip_types", "")), skip_folders=esc(values.get("report_skip_folders", "")), delimiter=esc(values.get("report_delimiter", "")), online=esc(values.get("report_online", "")), credentials=esc(values.get("report_credentials", "")), distinct=checked(values, "report_distinct"), excel=checked(values, "report_excel"), force=checked(values, "report_force"))
     return '<label class="full">Arguments<input name="args" placeholder="help 출력에서 확인한 옵션 입력"></label>'

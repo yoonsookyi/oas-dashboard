@@ -80,6 +80,66 @@
     advice.hidden = isOpen;
   });
 
+  document.addEventListener("click", function (event) {
+    var openButton = event.target.closest && event.target.closest("[data-report-example-open]");
+    if (openButton) {
+      var dialog = openButton.closest(".script-exec-form").querySelector("[data-report-example-dialog]");
+      if (dialog && dialog.showModal) {
+        dialog.showModal();
+      }
+      return;
+    }
+
+    var closeButton = event.target.closest && event.target.closest("[data-report-example-close]");
+    if (closeButton) {
+      var closeDialog = closeButton.closest("dialog");
+      if (closeDialog) {
+        closeDialog.close();
+      }
+      return;
+    }
+
+    var example = event.target.closest && event.target.closest("[data-report-example]");
+    if (!example) {
+      return;
+    }
+    var form = example.closest(".script-exec-form");
+    if (!form) {
+      return;
+    }
+    var fields = {
+      report_output: "reportOutput",
+      report_type: "reportType",
+      report_fields: "reportFields",
+      report_folder: "reportFolder"
+    };
+    Object.keys(fields).forEach(function (name) {
+      var input = form.elements[name];
+      var value = example.dataset[fields[name]];
+      if (input && value !== undefined) {
+        input.value = value;
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    });
+    var exampleDialog = example.closest("dialog");
+    if (exampleDialog) {
+      exampleDialog.close();
+    }
+  });
+
+  document.querySelectorAll(".script-form-grid").forEach(function (grid) {
+    var options = grid.querySelectorAll(".checkbox-field input[name^='report_']");
+    if (!options.length) {
+      return;
+    }
+    var group = document.createElement("div");
+    group.className = "report-options full";
+    options[0].closest("label").before(group);
+    options.forEach(function (input) {
+      group.appendChild(input.closest("label"));
+    });
+  });
+
   document.querySelectorAll(".command-preview textarea").forEach(function (textarea) {
     textarea.style.height = "auto";
     textarea.style.height = textarea.scrollHeight + "px";
