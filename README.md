@@ -242,3 +242,54 @@ python3 -m compileall app tests
 ```
 
 OAS 관련 확장은 OBIEE 문서가 아닌 Oracle Analytics Server 문서를 기준으로 검토합니다. 특히 [OAS 서비스 인스턴스 관리 스크립트](https://docs.oracle.com/en/middleware/bi/analytics-server/administer-oas/scripts-managing-service-instances.html)와 [Catalog REST API](https://docs.oracle.com/en/middleware/bi/analytics-server/oasri/api-catalog.html)를 참고하세요.
+
+
+## 화면별 기능 및 화면 캡처
+
+아래 화면은 로컬 예시 환경에서 캡처한 것입니다. 실제 운영 환경에서는 설정값과 수집 결과에 따라 표시 내용이 달라질 수 있습니다.
+
+### Resources
+
+![Resources 화면](docs/screenshots/01_resources.png)
+
+- 서버 CPU, 메모리, Swap, 디스크 사용량을 확인합니다.
+- OAS/OHS 관련 경로, listener, 프로세스와 관리 접속 경로를 점검합니다.
+- 일상 점검이나 장애 발생 시 인프라·서비스 상태를 먼저 확인할 때 사용합니다.
+
+### Catalog
+
+![Catalog 화면](docs/screenshots/02_catalog.png)
+
+- Catalog REST API 수집 결과를 유형별 현황과 폴더별 자산 수로 요약합니다.
+- 왼쪽 Owner 목록에서 사용자를 선택하면 오른쪽에서 Name, Type, Owner, Last Modified, Folder를 확인할 수 있습니다.
+- System Account가 소유한 기본 폴더는 요약 집계에서 제외합니다.
+- 자산 소유자 확인, 영향 범위 파악, 정기 현황 점검에 사용합니다.
+
+### Patch
+
+![Patch 화면](docs/screenshots/03_patch.png)
+
+- `opatch lsinventory` 결과를 기반으로 현재 적용된 패치 수준을 확인합니다.
+- 패치 적용 전후 비교와 유지보수 이력 점검에 사용합니다.
+
+### Scripts
+
+![Scripts 화면](docs/screenshots/04_scripts.png)
+
+- 환경 백업, OAS 지원용 진단 로그 수집, 카탈로그 감사 보고서 추출을 제공합니다.
+- 실제 실행 전에 입력값과 실행 명령을 미리 확인한 뒤 실행합니다.
+- 카탈로그 감사 보고서는 `runcat.sh -cmd report` 기반으로 CSV 보고서를 추출합니다.
+
+### Jobs / Audit
+
+![Jobs / Audit 화면](docs/screenshots/05_jobs.png)
+
+- 수집·스크립트 작업의 실행 결과, stdout/stderr, 종료 코드와 로그 경로를 확인합니다.
+- 작업 실패 원인 분석과 운영 이력 추적에 사용합니다.
+
+### Settings
+
+![Settings 화면](docs/screenshots/06_settings.png)
+
+- OAS/OHS 경로, Catalog API 연결 정보, 백업·번들·패키지 저장 경로를 확인합니다.
+- 운영 환경을 변경하거나 수집·스크립트 실행 문제가 발생했을 때 먼저 점검합니다.
